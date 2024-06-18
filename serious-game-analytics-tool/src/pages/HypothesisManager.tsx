@@ -35,6 +35,7 @@ import {
   Visualizations,
 } from "../constants/data.tsx";
 import { Link } from "react-router-dom";
+import { selectSearchHandler } from "../utils";
 
 export const HypothesisManager = () => {
   const [hypothesis, setHypothesis] = useState<any[]>([]);
@@ -405,13 +406,15 @@ export const HypothesisManager = () => {
                           { required: true, message: "Event must be selected" },
                         ]}
                       >
-                        <Select placeholder="Event name">
-                          {events.map((e) => (
-                            <Select.Option value={e.id} key={e.id}>
-                              {e.name}
-                            </Select.Option>
-                          ))}
-                        </Select>
+                        <Select
+                          placeholder="Event name"
+                          showSearch
+                          filterOption={selectSearchHandler}
+                          options={events.map((e) => ({
+                            label: e.name,
+                            value: e.id,
+                          }))}
+                        />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "accessor"]}

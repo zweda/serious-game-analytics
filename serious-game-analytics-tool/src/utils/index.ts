@@ -94,3 +94,7 @@ export const getEChartsOptionsFromData = (
 
   return options;
 };
+
+export const selectSearchHandler = (input: string, option: any) => {
+  return ("" + option?.label).toLowerCase().includes(input.toLowerCase());
+};
