@@ -17,6 +17,8 @@ import { EventsOverview } from "../pages/EventsOverview.tsx";
 import { UserOverview } from "../pages/UserOverview.tsx";
 import { Analytics } from "../pages/Analytics.tsx";
 
+export const contentHeight = "calc(100vh - 22px - 2*24px - 64px - 50px)";
+
 export const modules = {
   workspaces: {
     name: "Workspaces",

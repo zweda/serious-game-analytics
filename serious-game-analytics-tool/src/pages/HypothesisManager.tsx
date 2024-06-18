@@ -36,6 +36,7 @@ import {
 } from "../constants/data.tsx";
 import { Link } from "react-router-dom";
 import { selectSearchHandler } from "../utils";
+import { contentHeight } from "../constants";
 
 export const HypothesisManager = () => {
   const [hypothesis, setHypothesis] = useState<any[]>([]);
@@ -77,6 +78,7 @@ export const HypothesisManager = () => {
           accessor: ev.accessor,
           value_policy: ev.valuePolicy,
           event: ev.event,
+          label: ev.label,
           end_value: ev.endValue,
           start_value: ev.startValue,
           game: appContext.games.active.id,
@@ -154,6 +156,7 @@ export const HypothesisManager = () => {
       title: "Aggregation Policy",
       dataIndex: "aggregationPolicy",
       key: "aggregationPolicy",
+      align: "center",
       render: (value: keyof typeof AggregationPolicies) => (
         <p style={{ color: colorTextDescription }}>
           {AggregationPolicies[value]}
@@ -195,6 +198,7 @@ export const HypothesisManager = () => {
         render: (value) =>
           events.find((ev: any) => ev.id === value)?.name || "",
       },
+      { title: "Label", dataIndex: "label", key: "label" },
       { title: "Field", dataIndex: "accessor", key: "accessor" },
       {
         title: "Value Policy",
@@ -219,7 +223,7 @@ export const HypothesisManager = () => {
   return (
     <Flex
       style={{
-        height: "calc(100% - 22px - 2*24px)",
+        height: contentHeight,
         background: colorBgContainer,
         borderRadius: borderRadiusLG,
         padding: 24,
@@ -267,7 +271,11 @@ export const HypothesisManager = () => {
       >
         <Form
           variant="filled"
-          style={{ marginTop: 20 }}
+          style={{
+            marginTop: 20,
+            height: "calc(90vh - 2*20px - 24px)",
+            overflow: "auto",
+          }}
           onFinish={handleCreateNewResearchQuestion}
         >
           <Flex align="center" gap={20}>
@@ -304,95 +312,13 @@ export const HypothesisManager = () => {
             <Input.TextArea rows={4} />
           </Form.Item>
           <Divider />
-          <Flex gap={10} style={{ color: colorTextDescription }}>
-            <InfoCircleOutlined />
-            <span>Take into account context in which data is collected</span>
-          </Flex>
-          <Form.Item
-            name="usesContext"
-            valuePropName="checked"
-            style={{ marginTop: 20 }}
-          >
-            <Checkbox>Use Context</Checkbox>
-          </Form.Item>
-          <Form.Item
-            label="Context Key"
-            name="contextAccessor"
-            style={{ maxWidth: 400 }}
-          >
-            <Input />
-          </Form.Item>
-          <Divider />
           <Flex
             gap={10}
-            style={{
-              color: colorTextDescription,
-              marginBottom: 20,
-            }}
+            style={{ color: colorTextDescription, marginBottom: 20 }}
           >
             <InfoCircleOutlined />
-            <span>
-              How and in what way is data coming from the events is accumulated
-              and shown
-            </span>
+            <span>Represents what data is taken into account</span>
           </Flex>
-          <Flex>
-            <Form.Item
-              label="Session Policy"
-              name="sessionPolicy"
-              style={{ minWidth: 400 }}
-            >
-              <Select>
-                {Object.keys(SessionPolicy).map((k) => (
-                  <Select.Option value={k} key={k}>
-                    {SessionPolicy[k as keyof typeof SessionPolicy]}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Flex>
-          <Flex align="center" gap={20}>
-            <Form.Item
-              label="Aggregation Policy"
-              name="aggregationPolicy"
-              style={{ minWidth: 400 }}
-            >
-              <Select>
-                {Object.keys(AggregationPolicies).map((k) => (
-                  <Select.Option value={k} key={k}>
-                    {AggregationPolicies[k as keyof typeof AggregationPolicies]}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label="Aggregation Function"
-              name="aggregationFunction"
-              style={{ minWidth: 400 }}
-            >
-              <Select>
-                {Object.keys(Aggregations).map((k) => (
-                  <Select.Option value={k} key={k}>
-                    {Aggregations[k as keyof typeof Aggregations]}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Flex>
-          <Form.Item
-            label="Visualization Type"
-            name="visualizationType"
-            style={{ maxWidth: 400 }}
-          >
-            <Select>
-              {Object.keys(Visualizations).map((k) => (
-                <Select.Option value={k} key={k}>
-                  {Visualizations[k as keyof typeof Visualizations]}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Divider />
           <Form.List name="events">
             {(fields, { add, remove }) => (
               <>
@@ -402,9 +328,6 @@ export const HypothesisManager = () => {
                       <Form.Item
                         name={[field.name, "event"]}
                         style={{ width: 250, marginBottom: 0 }}
-                        rules={[
-                          { required: true, message: "Event must be selected" },
-                        ]}
                       >
                         <Select
                           placeholder="Event name"
@@ -419,11 +342,14 @@ export const HypothesisManager = () => {
                       <Form.Item
                         name={[field.name, "accessor"]}
                         style={{ width: 350, marginBottom: 0 }}
-                        rules={[
-                          { required: true, message: "Selector is required" },
-                        ]}
                       >
                         <Input placeholder="Event data key" />
+                      </Form.Item>
+                      <Form.Item
+                        name={[field.name, "label"]}
+                        style={{ width: 350, marginBottom: 0 }}
+                      >
+                        <Input placeholder="Event label" />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "valuePolicy"]}
@@ -469,6 +395,95 @@ export const HypothesisManager = () => {
               </>
             )}
           </Form.List>
+          <Divider />
+          <Flex gap={10} style={{ color: colorTextDescription }}>
+            <InfoCircleOutlined />
+            <span>Take into account context in which data is collected</span>
+          </Flex>
+          <Form.Item
+            name="usesContext"
+            valuePropName="checked"
+            style={{ marginTop: 20 }}
+          >
+            <Checkbox>Use Context</Checkbox>
+          </Form.Item>
+          <Form.Item
+            label="Context Key"
+            name="contextAccessor"
+            style={{ maxWidth: 400 }}
+          >
+            <Input />
+          </Form.Item>
+          <Divider />
+          <Flex
+            gap={10}
+            style={{
+              color: colorTextDescription,
+              marginBottom: 20,
+            }}
+          >
+            <InfoCircleOutlined />
+            <span>
+              How and in what way is data coming from the events is accumulated
+              and shown
+            </span>
+          </Flex>
+          <Flex align="center" gap={20}>
+            <Form.Item
+              label="Aggregation Policy"
+              name="aggregationPolicy"
+              style={{ minWidth: 400 }}
+            >
+              <Select>
+                {Object.keys(AggregationPolicies).map((k) => (
+                  <Select.Option value={k} key={k}>
+                    {AggregationPolicies[k as keyof typeof AggregationPolicies]}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              label="Aggregation Function"
+              name="aggregationFunction"
+              style={{ minWidth: 400 }}
+            >
+              <Select>
+                {Object.keys(Aggregations).map((k) => (
+                  <Select.Option value={k} key={k}>
+                    {Aggregations[k as keyof typeof Aggregations]}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Flex>
+          <Flex>
+            <Form.Item
+              label="Session Policy"
+              name="sessionPolicy"
+              style={{ minWidth: 400 }}
+            >
+              <Select>
+                {Object.keys(SessionPolicy).map((k) => (
+                  <Select.Option value={k} key={k}>
+                    {SessionPolicy[k as keyof typeof SessionPolicy]}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Flex>
+          <Form.Item
+            label="Visualization Type"
+            name="visualizationType"
+            style={{ maxWidth: 400 }}
+          >
+            <Select>
+              {Object.keys(Visualizations).map((k) => (
+                <Select.Option value={k} key={k}>
+                  {Visualizations[k as keyof typeof Visualizations]}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
 
           <Form.Item style={{ marginBottom: 0 }}>
             <Flex justify="flex-end">

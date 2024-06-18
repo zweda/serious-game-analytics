@@ -5,7 +5,7 @@ import { useCallback, useContext, useMemo, useState } from "react";
 import { UploadChangeParam } from "antd/es/upload";
 import Papa from "papaparse";
 import { ColumnType } from "antd/es/table/interface";
-import { aptabaseKeyIgnoreList } from "../constants";
+import { aptabaseKeyIgnoreList, contentHeight } from "../constants";
 import { snakeCaseToWords } from "../utils";
 import { API_ENDPOINT } from "../api";
 import { AppContext } from "../App.tsx";
@@ -78,15 +78,14 @@ export const Uploader = () => {
     <Flex
       style={{
         padding: 24,
-        minHeight: 360,
+        height: contentHeight,
         background: colorBgContainer,
         borderRadius: borderRadiusLG,
         position: "relative",
       }}
-      align="center"
-      justify="space-between"
-      gap={20}
       vertical
+      align="center"
+      gap={50}
     >
       <Dragger
         name="file"

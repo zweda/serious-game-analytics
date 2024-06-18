@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Visualizations } from "../constants/data.tsx";
 import { EChartsOption } from "echarts";
+import { contentHeight } from "../constants";
 
 export const mapMenuItem = (
   label: string,
@@ -72,12 +73,21 @@ export const getEChartsOptionsFromData = (
   switch (type) {
     case "scatter":
       options.xAxis = {
-        name: labels[0].name + " - " + labels[0].accessor || "",
+        name: labels[0].name,
         nameLocation: "middle",
         nameGap: 30,
+        nameTextStyle: {
+          fontWeight: "bold",
+        },
       };
       options.yAxis = {
-        name: labels[1].name + " - " + labels[1].accessor || "",
+        name: labels[1].name,
+        nameRotate: 90,
+        nameLocation: "middle",
+        nameGap: 30,
+        nameTextStyle: {
+          fontWeight: "bold",
+        },
       };
       break;
     case "bar":
@@ -97,4 +107,41 @@ export const getEChartsOptionsFromData = (
 
 export const selectSearchHandler = (input: string, option: any) => {
   return ("" + option?.label).toLowerCase().includes(input.toLowerCase());
+};
+
+export const getColorForText = (text: string) => {
+  const colors = [
+    "blue",
+    "purple",
+    "cyan",
+    "green",
+    "magenta",
+    "pink",
+    "red",
+    "orange",
+    "yellow",
+    "volcano",
+    "geekblue",
+    "lime",
+    "gold",
+  ];
+
+  // Simple hash function to convert text to a numeric value
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 7) - hash);
+  }
+
+  // Use the hash value to choose a color
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
+export const getRelativeContentHeight = (subtract: number) => {
+  return (
+    contentHeight.substring(0, contentHeight.length - 1) +
+    " - " +
+    subtract +
+    "px)"
+  );
 };

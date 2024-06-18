@@ -18,7 +18,7 @@ class Game(models.Model):
 
 class User(models.Model):
     id = models.CharField(max_length=16, primary_key=True)
-    email = EmailField(unique=True, null=True, blank=True)
+    email = EmailField(null=True, blank=True)
     age = models.IntegerField(null=True, blank=True)
     gender = models.CharField(max_length=1, null=True, blank=True)
     os = models.CharField(max_length=100, null=True, blank=True)
@@ -74,6 +74,7 @@ class Event(models.Model):
 
 class EventGroup(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    label = models.CharField(max_length=250, null=False, blank=False)
     accessor = models.CharField(max_length=250, null=False, blank=True, default="value")
     # value, sum, range, time
     value_policy = models.CharField(max_length=250, null=True, blank=True, default="value")

@@ -6,6 +6,7 @@ import { ExperimentFilled } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import EChartsReact from "echarts-for-react";
 import { getEChartsOptionsFromData } from "../utils";
+import { contentHeight } from "../constants";
 
 export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
   const [data, setData] = useState([]);
@@ -26,12 +27,12 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
     getAnalytics(appContext.games.active.code, analytics)
       .then((res: any) => setData(res))
       .catch(() => message.error(`Unable to get ${analytics} analytics`));
-  }, []);
+  }, [analytics, appContext.games.active.code]);
 
-  const noData = useMemo(() => data === null, [data]);
+  const noData = useMemo(() => data.length === 0, [data]);
   const containerStyle = useMemo(
     () => ({
-      maxHeight: "calc(100vh - 22px - 2*24px - 64px - 50px)",
+      height: contentHeight,
       background: colorBgContainer,
       borderRadius: borderRadiusLG,
       padding: 24,

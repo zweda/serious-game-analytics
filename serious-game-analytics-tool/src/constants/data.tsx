@@ -1,7 +1,10 @@
 import { ColumnType } from "antd/es/table/interface";
 import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
-import { Tag } from "antd";
+import { Flex, Tag } from "antd";
 import { EditableCell } from "../components/EditableCell.tsx";
+import { Link } from "react-router-dom";
+import { copyToClipboard } from "../utils/tools.ts";
+import { getColorForText } from "../utils";
 
 export const userTableColumns: ColumnType<any>[] = [
   {
@@ -9,7 +12,11 @@ export const userTableColumns: ColumnType<any>[] = [
     key: "id",
     dataIndex: "id",
     align: "center",
-    render: (value) => <a href="">{value}</a>,
+    render: (value) => (
+      <Link to="" onClick={() => copyToClipboard(value)}>
+        {value}
+      </Link>
+    ),
   },
   {
     title: "Email",
@@ -53,18 +60,16 @@ export const userTableColumns: ColumnType<any>[] = [
 
 export const eventTableColumns: ColumnType<any>[] = [
   {
-    title: "ID",
-    key: "id",
-    dataIndex: "id",
-    align: "center",
-    render: (value) => <a href="">{value}</a>,
-  },
-  {
     title: "Name",
     key: "name",
     dataIndex: "name",
     sorter: (a: any, b: any) => a.name.localeCompare(b.name),
     align: "center",
+    render: (value) => (
+      <Link to="" onClick={() => copyToClipboard(value)}>
+        {value}
+      </Link>
+    ),
   },
   {
     title: "Number of Events",
@@ -72,7 +77,23 @@ export const eventTableColumns: ColumnType<any>[] = [
     dataIndex: "count",
     sorter: (a: any, b: any) => a.count - b.count,
     align: "center",
-    render: (value) => <a href="">{value}</a>,
+    render: (value) => <p style={{ color: "green" }}>{value}</p>,
+  },
+  {
+    title: "Event Fields",
+    key: "fields",
+    dataIndex: "fields",
+    align: "center",
+    render: (tags: string[]) => (
+      <Flex wrap justify="center" gap={5}>
+        {tags &&
+          tags.map((tag) => (
+            <Tag color={getColorForText(tag)} key={tag} style={{ margin: 0 }}>
+              {tag.toUpperCase()}
+            </Tag>
+          ))}
+      </Flex>
+    ),
   },
   {
     title: "Enumeration",
@@ -92,20 +113,14 @@ export const eventTableColumns: ColumnType<any>[] = [
     dataIndex: "enum",
     align: "center",
     render: (tags: string[]) => (
-      <span>
+      <Flex wrap justify="center" gap={5}>
         {tags &&
-          tags.map((tag) => {
-            let color = tag.length > 5 ? "geekblue" : "green";
-            if (tag === "loser") {
-              color = "volcano";
-            }
-            return (
-              <Tag color={color} key={tag}>
-                {tag.toUpperCase()}
-              </Tag>
-            );
-          })}
-      </span>
+          tags.map((tag) => (
+            <Tag color={getColorForText(tag)} key={tag} style={{ margin: 0 }}>
+              {tag.toUpperCase()}
+            </Tag>
+          ))}
+      </Flex>
     ),
   },
   {
@@ -146,17 +161,20 @@ export const Visualizations = {
 export const Aggregations = {
   sum: "Sum",
   count: "Count",
+  average: "Average",
 };
 
 export const AggregationPolicies = {
-  "per-user": "Apply aggregation function per user",
-  globally: "Apply aggregation function globally across users",
+  user: "Group by user",
+  region: "Group by user region ",
+  gender: "Group by user gender",
+  age: "Group by user age",
+  globally: "No grouping",
 };
 
 export const SessionPolicy = {
-  "only-first": "Take into account only first session of a user",
-  average: "Take averages of sessions for a users",
-  each: "Count each session as individual run (for each session of each user)",
+  first: "Take into account only first session of a user",
+  each: "Count each session as individual run",
 };
 
 export const Measurement = {

@@ -131,7 +131,7 @@ class AnalyticsView(APIView):
             event_types = EventGroup.objects.filter(research_question=rq)
             for event_type in event_types:
                 labels.append({
-                    "name": event_type.event.name,
+                    "name": event_type.label,
                     "accessor": event_type.accessor,
                     "type": event_type.value_policy
                 })
@@ -151,12 +151,12 @@ class AnalyticsView(APIView):
 
                 result_dic["context_values"] = context_values
 
-            if rq.aggregation_policy == "per-user":
+            if rq.aggregation_policy == "user":
                 users = User.objects.filter(game=game)
                 users_data = []
                 for user in users:
                     user_data = []
-                    if rq.session_policy == "only-first":
+                    if rq.session_policy == "first":
                         user_events = UserEvent.objects.filter(session_id=user.first_session_id, user=user)
 
                         for event_type in event_types:
@@ -260,17 +260,27 @@ class EventViewSet(viewsets.ModelViewSet):
         event_counts = UserEvent.objects.values('event').annotate(count=Count('id'))
         event_count_dict = {str(item['event']): item['count'] for item in event_counts}
 
-        # Get the comma-separated string of all values from UserEventProp for each event
-        event_props = (UserEventProp.objects.values('user_event__event')
-        .filter(user_event__event__name__startswith="action")
-        .annotate(
-            value=F('value')
-        ))
-        event_prop_dict = {}
-        for item in event_props:
+        # get possible event keys
+        event_prop_keys = UserEventProp.objects.values('user_event__event', 'key')
+        event_prop_keys_dict = {}
+        for item in event_prop_keys:
             event_id = str(item['user_event__event'])
-            if event_id in event_prop_dict and item['value'] not in event_prop_dict[event_id]:
-                event_prop_dict[event_id].append(item['value'])
+            if event_id in event_prop_keys_dict:
+                if item['key'] not in event_prop_keys_dict[event_id]:
+                    event_prop_keys_dict[event_id].append(item['key'])
+            else:
+                event_prop_keys_dict[event_id] = [item['key']]
+
+        # Get all possible enum values for action event
+        action_event_props = (UserEventProp.objects.values('user_event__event', 'value')
+                              .filter(user_event__event__name__startswith="action"))
+
+        event_prop_dict = {}
+        for item in action_event_props:
+            event_id = str(item['user_event__event'])
+            if event_id in event_prop_dict:
+                if item['value'] not in event_prop_dict[event_id]:
+                    event_prop_dict[event_id].append(item['value'])
             else:
                 event_prop_dict[event_id] = [item['value']]
 
@@ -278,7 +288,9 @@ class EventViewSet(viewsets.ModelViewSet):
         for event in response_data:
             event_id = event['id']
             event['count'] = event_count_dict.get(event_id, 0)
-            event['enum'] = event_prop_dict.get(event_id, "")
+            event['enum'] = event_prop_dict.get(event_id, [])
+            event['fields'] = event_prop_keys_dict.get(event_id, [])
+            event['reserved'] = event['name'] in ['context-changed', 'user-data']
 
         return JsonResponse({
             "results": response_data

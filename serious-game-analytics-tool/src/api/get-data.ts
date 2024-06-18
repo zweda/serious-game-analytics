@@ -70,6 +70,8 @@ export const getEvents = async (gameId: string) => {
       count: event.count,
       enum: event.enum,
       game: event.game,
+      fields: event.fields,
+      reserved: event.reserved,
     }));
 
   return [];
@@ -99,6 +101,7 @@ export const getHypothesis = async (gameId: string) => {
         event: eg.event,
         startValue: eg["start_value"],
         endValue: eg["end_value"],
+        label: eg.label,
       })),
     }));
 

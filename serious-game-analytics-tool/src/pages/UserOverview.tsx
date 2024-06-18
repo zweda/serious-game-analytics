@@ -4,6 +4,7 @@ import { Flex, message, Table, theme } from "antd";
 import { getUsers, getUserStatistics } from "../api/get-data.ts";
 import { userTableColumns } from "../constants/data.tsx";
 import ReactECharts from "echarts-for-react";
+import { contentHeight } from "../constants";
 
 export const UserOverview = () => {
   const [users, setUsers] = useState([]);
@@ -45,7 +46,7 @@ export const UserOverview = () => {
   return (
     <Flex
       style={{
-        height: "calc(100% - 22px - 2*24px)",
+        height: contentHeight,
         background: colorBgContainer,
         borderRadius: borderRadiusLG,
         padding: 24,
@@ -167,7 +168,7 @@ export const UserOverview = () => {
                 },
               ],
             }}
-            style={{ height: 300, width: 400 }}
+            style={{ height: 300, width: 500 }}
           />
         )}
       </Flex>
