@@ -190,6 +190,7 @@ class AnalyticsView(APIView):
                     elif rq.session_policy == "each":
                         sessions = UserEvent.objects.get(user=user).values_list("session_id", flat=True)
                         for session_id in sessions:
+                            session_data = []
                             user_events = UserEvent.objects.filter(session_id=session_id, user=user)
                             for axis in axes:
                                 if axis.value_policy == "value":
@@ -210,11 +211,11 @@ class AnalyticsView(APIView):
                                         except ValueError:
                                             break
 
-                                    user_data.append(value)
+                                    session_data.append(value)
                                 elif axis.value_policy == "count":
-                                    user_data.append(user_events.filter(event=axis.event).count())
+                                    session_data.append(user_events.filter(event=axis.event).count())
 
-                            users_data.append(user_data)
+                            users_data.append(session_data)
                 result_dic["data"] = users_data
 
             result.append(result_dic)
