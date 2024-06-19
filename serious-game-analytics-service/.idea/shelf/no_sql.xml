@@ -1,0 +1,9 @@
+<changelist name="no_sql" date="1718761913693" recycled="false">
+  <option name="PATH" value="$PROJECT_DIR$/.idea/shelf/no_sql/shelved.patch" />
+  <option name="DESCRIPTION" value="no sql" />
+  <binary>
+    <option name="BEFORE_PATH" value="db.sqlite3" />
+    <option name="AFTER_PATH" value="db.sqlite3" />
+    <option name="SHELVED_PATH" value="$PROJECT_DIR$/.idea/shelf/no_sql/db.sqlite3" />
+  </binary>
+</changelist>

@@ -1,0 +1,791 @@
+Index: ../serious-game-analytics-tool/src/api/get-data.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { httpRequest } from \"./index.ts\";\r\nimport { groupAges } from \"../utils/data.ts\";\r\n\r\nexport const getGames = async () => {\r\n  const { data, ok } = await httpRequest(\"games\", \"get\");\r\n  if (ok)\r\n    return data.results.map((g: any) => ({\r\n      id: g[\"id\"],\r\n      code: g[\"code\"],\r\n      name: g[\"name\"],\r\n      description: g[\"description\"],\r\n      created: g[\"created_at\"],\r\n    }));\r\n\r\n  return [];\r\n};\r\n\r\nexport const getAnalytics = async (gameCode: string, type: string) => {\r\n  const { data, ok } = await httpRequest(\r\n    `analytics/${gameCode}/${type}`,\r\n    \"get\",\r\n  );\r\n\r\n  if (ok) return data.results;\r\n  return [];\r\n};\r\n\r\nexport const getUserStatistics = async (gameCode: string) => {\r\n  const { data, ok } = await httpRequest(`user-stats/${gameCode}`, \"get\");\r\n\r\n  if (ok)\r\n    return {\r\n      age: groupAges(data[\"age_data\"]),\r\n      gender: data[\"gender_data\"],\r\n      region: data[\"region_data\"],\r\n    };\r\n\r\n  return {\r\n    age: [],\r\n    gender: [],\r\n    region: [],\r\n  };\r\n};\r\n\r\nexport const getUsers = async (gameId: string) => {\r\n  const { data, ok } = await httpRequest(`users`, \"get\", { game: gameId });\r\n\r\n  if (ok)\r\n    return data.results.map((user: any) => ({\r\n      id: user.id,\r\n      email: user.email,\r\n      age: user.age,\r\n      gender: user.gender,\r\n      os: user.os,\r\n      region: user.region,\r\n    }));\r\n\r\n  return [];\r\n};\r\n\r\nexport const getEvents = async (gameId: string) => {\r\n  const { data, ok } = await httpRequest(`events`, \"get\", { game: gameId });\r\n\r\n  if (ok)\r\n    return data.results.map((event: any) => ({\r\n      id: event.id,\r\n      name: event.name,\r\n      description: event.description,\r\n      action: event.name.startsWith(\"action\"),\r\n      count: event.count,\r\n      enum: event.enum,\r\n      game: event.game,\r\n      fields: event.fields,\r\n      reserved: event.reserved,\r\n    }));\r\n\r\n  return [];\r\n};\r\n\r\nexport const getHypothesis = async (gameId: string) => {\r\n  const { data, ok } = await httpRequest(`research-questions`, \"get\", {\r\n    game: gameId,\r\n  });\r\n\r\n  if (ok)\r\n    return data.results.map((rq: any) => ({\r\n      id: rq.id,\r\n      name: rq.name,\r\n      description: rq.description,\r\n      measurement: rq.measurement,\r\n      usesContext: rq[\"uses_context\"],\r\n      contextAccessor: rq[\"context_accessor\"],\r\n      sessionPolicy: rq[\"session_policy\"],\r\n      aggregationPolicy: rq[\"aggregation_policy\"],\r\n      aggregationFunction: rq[\"aggregation_function\"],\r\n      visualizationType: rq[\"visualization_type\"],\r\n      events: rq[\"event_groups\"].map((eg: any) => ({\r\n        id: eg.id,\r\n        accessor: eg.accessor,\r\n        valuePolicy: eg[\"value_policy\"],\r\n        event: eg.event,\r\n        startValue: eg[\"start_value\"],\r\n        endValue: eg[\"end_value\"],\r\n        label: eg.label,\r\n      })),\r\n    }));\r\n\r\n  return [];\r\n};\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../serious-game-analytics-tool/src/api/get-data.ts b/../serious-game-analytics-tool/src/api/get-data.ts
+--- a/../serious-game-analytics-tool/src/api/get-data.ts	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/../serious-game-analytics-tool/src/api/get-data.ts	(date 1718749692874)
+@@ -94,6 +94,8 @@
+       aggregationPolicy: rq["aggregation_policy"],
+       aggregationFunction: rq["aggregation_function"],
+       visualizationType: rq["visualization_type"],
++      timeBetween: rq["time_between"],
++      timeLabel: rq["label_for_time"],
+       events: rq["event_groups"].map((eg: any) => ({
+         id: eg.id,
+         accessor: eg.accessor,
+Index: ../serious-game-analytics-tool/src/api/actions.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { httpRequest } from \"./index.ts\";\r\nimport { getLocalFormattedDateTime } from \"../utils\";\r\n\r\nexport const createGame = async (data: any) => {\r\n  const {\r\n    data: createdGame,\r\n    ok,\r\n    status,\r\n  } = await httpRequest(\"games\", \"post\", null, data);\r\n\r\n  if (ok) {\r\n    return {\r\n      created: true,\r\n      data: {\r\n        id: createdGame[\"id\"],\r\n        code: createdGame[\"code\"],\r\n        name: createdGame[\"name\"],\r\n        description: createdGame[\"description\"],\r\n        created: getLocalFormattedDateTime(createdGame[\"created_at\"]),\r\n      },\r\n    };\r\n  }\r\n\r\n  let message = \"Error creating workspace\";\r\n  if (status === 400) message = \"Game code must be unique\";\r\n  return {\r\n    created: false,\r\n    message,\r\n  };\r\n};\r\n\r\nexport const deleteGame = async (id: string) => {\r\n  const { status, ok } = await httpRequest(`games/${id}`, \"delete\");\r\n\r\n  let message = \"\";\r\n  if (status === 400)\r\n    message = \"Cannot delete a game workspace because there are active events\";\r\n\r\n  return {\r\n    deleted: ok,\r\n    message,\r\n  };\r\n};\r\n\r\nexport const createHypothesis = async (data: any) => {\r\n  const { data: rq, ok } = await httpRequest(\r\n    \"research-questions\",\r\n    \"post\",\r\n    null,\r\n    data,\r\n  );\r\n\r\n  if (ok) return { created: true, data: rq };\r\n\r\n  return {\r\n    created: false,\r\n    message: \"Error creating research question\",\r\n  };\r\n};\r\n\r\nexport const deleteHypothesis = async (id: string) => {\r\n  const { ok } = await httpRequest(`research-questions/${id}`, \"delete\");\r\n\r\n  return {\r\n    deleted: ok,\r\n    message: \"\",\r\n  };\r\n};\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../serious-game-analytics-tool/src/api/actions.ts b/../serious-game-analytics-tool/src/api/actions.ts
+--- a/../serious-game-analytics-tool/src/api/actions.ts	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/../serious-game-analytics-tool/src/api/actions.ts	(date 1718755545649)
+@@ -42,10 +42,15 @@
+   };
+ };
+ 
+-export const createHypothesis = async (data: any) => {
++export const saveHypothesis = async (
++  data: any,
++  isEdit?: boolean,
++  id?: string,
++) => {
++  console.log(data);
+   const { data: rq, ok } = await httpRequest(
+-    "research-questions",
+-    "post",
++    "research-questions" + (isEdit ? "/" + id : ""),
++    isEdit ? "put" : "post",
+     null,
+     data,
+   );
+Index: ../serious-game-analytics-tool/src/constants/data.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { ColumnType } from \"antd/es/table/interface\";\r\nimport { CheckCircleOutlined, CloseCircleOutlined } from \"@ant-design/icons\";\r\nimport { Flex, Tag } from \"antd\";\r\nimport { EditableCell } from \"../components/EditableCell.tsx\";\r\nimport { Link } from \"react-router-dom\";\r\nimport { copyToClipboard } from \"../utils/tools.ts\";\r\nimport { getColorForText } from \"../utils\";\r\n\r\nexport const userTableColumns: ColumnType<any>[] = [\r\n  {\r\n    title: \"ID\",\r\n    key: \"id\",\r\n    dataIndex: \"id\",\r\n    align: \"center\",\r\n    render: (value) => (\r\n      <Link to=\"\" onClick={() => copyToClipboard(value)}>\r\n        {value}\r\n      </Link>\r\n    ),\r\n  },\r\n  {\r\n    title: \"Email\",\r\n    key: \"email\",\r\n    dataIndex: \"email\",\r\n    sorter: (a: any, b: any) => (a.email ? a.email.localeCompare(b.email) : -1),\r\n    align: \"center\",\r\n  },\r\n  {\r\n    title: \"Age\",\r\n    key: \"age\",\r\n    dataIndex: \"age\",\r\n    sorter: (a: any, b: any) => (a.age ? a.age - b.age : -1),\r\n    align: \"center\",\r\n  },\r\n  {\r\n    title: \"Gender\",\r\n    key: \"gender\",\r\n    dataIndex: \"gender\",\r\n    sorter: (a: any, b: any) =>\r\n      a.gender ? a.gender.localeCompare(b.gender) : -1,\r\n    align: \"center\",\r\n    render: (value) => (value === \"f\" ? \"Female\" : \"Male\"),\r\n  },\r\n  {\r\n    title: \"OS\",\r\n    key: \"os\",\r\n    dataIndex: \"os\",\r\n    sorter: (a: any, b: any) => (a.os ? a.os.localeCompare(b.os) : -1),\r\n    align: \"center\",\r\n  },\r\n  {\r\n    title: \"Region\",\r\n    key: \"region\",\r\n    dataIndex: \"region\",\r\n    sorter: (a: any, b: any) =>\r\n      a.region ? a.region.localeCompare(b.region) : -1,\r\n    align: \"center\",\r\n  },\r\n];\r\n\r\nexport const eventTableColumns: ColumnType<any>[] = [\r\n  {\r\n    title: \"Name\",\r\n    key: \"name\",\r\n    dataIndex: \"name\",\r\n    sorter: (a: any, b: any) => a.name.localeCompare(b.name),\r\n    align: \"center\",\r\n    render: (value) => (\r\n      <Link to=\"\" onClick={() => copyToClipboard(value)}>\r\n        {value}\r\n      </Link>\r\n    ),\r\n  },\r\n  {\r\n    title: \"Number of Events\",\r\n    key: \"count\",\r\n    dataIndex: \"count\",\r\n    sorter: (a: any, b: any) => a.count - b.count,\r\n    align: \"center\",\r\n    render: (value) => <p style={{ color: \"green\" }}>{value}</p>,\r\n  },\r\n  {\r\n    title: \"Event Fields\",\r\n    key: \"fields\",\r\n    dataIndex: \"fields\",\r\n    align: \"center\",\r\n    render: (tags: string[]) => (\r\n      <Flex wrap justify=\"center\" gap={5}>\r\n        {tags &&\r\n          tags.map((tag) => (\r\n            <Tag color={getColorForText(tag)} key={tag} style={{ margin: 0 }}>\r\n              {tag.toUpperCase()}\r\n            </Tag>\r\n          ))}\r\n      </Flex>\r\n    ),\r\n  },\r\n  {\r\n    title: \"Enumeration\",\r\n    key: \"action\",\r\n    dataIndex: \"action\",\r\n    align: \"center\",\r\n    render: (value) =>\r\n      value ? (\r\n        <CheckCircleOutlined style={{ color: \"green\" }} />\r\n      ) : (\r\n        <CloseCircleOutlined style={{ color: \"red\" }} />\r\n      ),\r\n  },\r\n  {\r\n    title: \"Discrete Values\",\r\n    key: \"enum\",\r\n    dataIndex: \"enum\",\r\n    align: \"center\",\r\n    render: (tags: string[]) => (\r\n      <Flex wrap justify=\"center\" gap={5}>\r\n        {tags &&\r\n          tags.map((tag) => (\r\n            <Tag color={getColorForText(tag)} key={tag} style={{ margin: 0 }}>\r\n              {tag.toUpperCase()}\r\n            </Tag>\r\n          ))}\r\n      </Flex>\r\n    ),\r\n  },\r\n  {\r\n    title: \"Notes\",\r\n    key: \"description\",\r\n    dataIndex: \"description\",\r\n    sorter: (a: any, b: any) =>\r\n      a.description ? a.description.localeCompare(b.description) : -1,\r\n    align: \"center\",\r\n    render: (value, record) => (\r\n      <EditableCell\r\n        value={value}\r\n        name=\"description\"\r\n        url={`events/${record.id}`}\r\n        record={{ name: record.name, game: record.game }}\r\n      />\r\n    ),\r\n  },\r\n];\r\n\r\nexport const ValuePolicies = {\r\n  value: \"Use value directly from accessor\",\r\n  sum: \"Sum of values of an accessor in a session\",\r\n  count: \"Number of values of an accessor in a session\",\r\n  time: \"Get elapsed time between start and end value of this event.\",\r\n  \"time-sum\":\r\n    \"Get sum of elapsed times between start and end value in a session \",\r\n};\r\n\r\nexport const Visualizations = {\r\n  scalar: \"Scalar Value\",\r\n  scatter: \"Scatter Plot\",\r\n  bar: \"Bar Chart\",\r\n  line: \"Line Plot\",\r\n  pie: \"Pie Chart\",\r\n};\r\n\r\nexport const Aggregations = {\r\n  sum: \"Sum\",\r\n  count: \"Count\",\r\n  average: \"Average\",\r\n};\r\n\r\nexport const AggregationPolicies = {\r\n  user: \"Group by user\",\r\n  region: \"Group by user region \",\r\n  gender: \"Group by user gender\",\r\n  age: \"Group by user age\",\r\n  globally: \"No grouping\",\r\n};\r\n\r\nexport const SessionPolicy = {\r\n  first: \"Take into account only first session of a user\",\r\n  each: \"Count each session as individual run\",\r\n};\r\n\r\nexport const Measurement = {\r\n  immersion: \"Immersion\",\r\n  learning: \"Learning\",\r\n  gameplay: \"Gameplay\",\r\n  engagement: \"Engagement\",\r\n};\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../serious-game-analytics-tool/src/constants/data.tsx b/../serious-game-analytics-tool/src/constants/data.tsx
+--- a/../serious-game-analytics-tool/src/constants/data.tsx	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/../serious-game-analytics-tool/src/constants/data.tsx	(date 1718757972295)
+@@ -144,7 +144,8 @@
+ export const ValuePolicies = {
+   value: "Use value directly from accessor",
+   sum: "Sum of values of an accessor in a session",
+-  count: "Number of values of an accessor in a session",
++  count: "Number of event occurrences in a session",
++  "count-values": "Number of values of an accessor in a session",
+   time: "Get elapsed time between start and end value of this event.",
+   "time-sum":
+     "Get sum of elapsed times between start and end value in a session ",
+@@ -165,11 +166,11 @@
+ };
+ 
+ export const AggregationPolicies = {
+-  user: "Group by user",
+-  region: "Group by user region ",
+-  gender: "Group by user gender",
+-  age: "Group by user age",
+-  globally: "No grouping",
++  user: "No grouping",
++  region: "Group by region",
++  gender: "Group by gender",
++  age: "Group by age",
++  globally: "Apply aggregation function globally",
+ };
+ 
+ export const SessionPolicy = {
+Index: ../serious-game-analytics-tool/src/pages/HypothesisManager.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import {\r\n  Button,\r\n  Checkbox,\r\n  Divider,\r\n  Flex,\r\n  Form,\r\n  Input,\r\n  message,\r\n  Modal,\r\n  Select,\r\n  Table,\r\n  theme,\r\n} from \"antd\";\r\nimport { FC, useContext, useEffect, useState } from \"react\";\r\nimport { AppContext } from \"../App.tsx\";\r\nimport { getEvents, getHypothesis } from \"../api/get-data.ts\";\r\nimport { ColumnType } from \"antd/es/table/interface\";\r\nimport {\r\n  CheckCircleOutlined,\r\n  CloseCircleOutlined,\r\n  DeleteOutlined,\r\n  InfoCircleOutlined,\r\n  LoadingOutlined,\r\n  MinusCircleOutlined,\r\n  PlusCircleOutlined,\r\n  PlusOutlined,\r\n} from \"@ant-design/icons\";\r\nimport { createHypothesis, deleteHypothesis } from \"../api/actions.ts\";\r\nimport {\r\n  AggregationPolicies,\r\n  Aggregations,\r\n  Measurement,\r\n  SessionPolicy,\r\n  ValuePolicies,\r\n  Visualizations,\r\n} from \"../constants/data.tsx\";\r\nimport { Link } from \"react-router-dom\";\r\nimport { selectSearchHandler } from \"../utils\";\r\nimport { contentHeight } from \"../constants\";\r\n\r\nexport const HypothesisManager = () => {\r\n  const [hypothesis, setHypothesis] = useState<any[]>([]);\r\n  const [events, setEvents] = useState<{ name: string; id: string }[]>([]);\r\n  const { appContext } = useContext(AppContext);\r\n\r\n  const [rQModalOpened, setRQModalOpened] = useState<boolean>(false);\r\n  const [newRQLoading, setNewRQLoading] = useState<boolean>(false);\r\n\r\n  const {\r\n    token: { colorBgContainer, borderRadiusLG, colorTextDescription },\r\n  } = theme.useToken();\r\n\r\n  useEffect(() => {\r\n    getHypothesis(appContext.games.active.id)\r\n      .then((res: any) => setHypothesis(res))\r\n      .catch(() => message.error(`Unable to get game events`));\r\n    getEvents(appContext.games.active.id).then((res: any) =>\r\n      setEvents(res.map((ev: any) => ({ id: ev.id, name: ev.name }))),\r\n    );\r\n  }, [appContext.games.active.id]);\r\n\r\n  const handleCreateNewResearchQuestion = (data: any) => {\r\n    setNewRQLoading(true);\r\n    createHypothesis({\r\n      name: data.name,\r\n      description: data.description,\r\n      uses_context: data.usesContext,\r\n      measurement: data.measurement,\r\n      context_accessor: data.contextAccessor,\r\n      session_policy: data.sessionPolicy,\r\n      aggregation_policy: data.aggregationPolicy,\r\n      aggregation_function: data.aggregationFunction,\r\n      visualization_type: data.visualizationType,\r\n      game: appContext.games.active.id,\r\n      event_groups: data.events\r\n        .filter((ev: any) => !!ev.event)\r\n        .map((ev: any) => ({\r\n          accessor: ev.accessor,\r\n          value_policy: ev.valuePolicy,\r\n          event: ev.event,\r\n          label: ev.label,\r\n          end_value: ev.endValue,\r\n          start_value: ev.startValue,\r\n          game: appContext.games.active.id,\r\n        })),\r\n    })\r\n      .then((res) => {\r\n        if (res.created) {\r\n          console.log(res.data);\r\n          setRQModalOpened(false);\r\n          getHypothesis(appContext.games.active.id).then((res: any) =>\r\n            setHypothesis(res),\r\n          );\r\n        }\r\n\r\n        setNewRQLoading(false);\r\n      })\r\n      .catch(() => setNewRQLoading(false));\r\n  };\r\n\r\n  const handleDeleteResearchQuestion = (id: string) => {\r\n    deleteHypothesis(id).then((res: any) => {\r\n      if (res.deleted)\r\n        setHypothesis(hypothesis.filter((h: any) => h.id !== id));\r\n      else message.error(res.message);\r\n    });\r\n  };\r\n\r\n  const hypothesisTableColumns: ColumnType<any>[] = [\r\n    {\r\n      title: \"Question\",\r\n      dataIndex: \"name\",\r\n      key: \"name\",\r\n      render: (value, record) => (\r\n        <Link to={\"/\" + record.measurement}>{value}</Link>\r\n      ),\r\n    },\r\n    {\r\n      title: \"Description\",\r\n      dataIndex: \"description\",\r\n      key: \"description\",\r\n      render: (value) => <p style={{ color: colorTextDescription }}>{value}</p>,\r\n    },\r\n    {\r\n      title: \"Measurement\",\r\n      dataIndex: \"measurement\",\r\n      key: \"measurement\",\r\n      align: \"center\",\r\n      render: (value: keyof typeof Measurement) => (\r\n        <Link to={\"/\" + value}>{Measurement[value]}</Link>\r\n      ),\r\n    },\r\n    {\r\n      title: \"Uses Context\",\r\n      dataIndex: \"usesContext\",\r\n      align: \"center\",\r\n      key: \"usesContext\",\r\n      render: (value, record) =>\r\n        value ? (\r\n          <Flex align=\"center\" justify=\"center\" gap={5}>\r\n            <CheckCircleOutlined style={{ color: \"green\" }} />\r\n            <span>Field:</span>\r\n            <b>{record.contextAccessor}</b>\r\n          </Flex>\r\n        ) : (\r\n          <CloseCircleOutlined style={{ color: \"red\" }} />\r\n        ),\r\n    },\r\n    {\r\n      title: \"Session Policy\",\r\n      dataIndex: \"sessionPolicy\",\r\n      key: \"sessionPolicy\",\r\n      render: (value: keyof typeof SessionPolicy) => SessionPolicy[value],\r\n    },\r\n    {\r\n      title: \"Aggregation Policy\",\r\n      dataIndex: \"aggregationPolicy\",\r\n      key: \"aggregationPolicy\",\r\n      align: \"center\",\r\n      render: (value: keyof typeof AggregationPolicies) => (\r\n        <p style={{ color: colorTextDescription }}>\r\n          {AggregationPolicies[value]}\r\n        </p>\r\n      ),\r\n    },\r\n    {\r\n      title: \"Aggregation Function\",\r\n      dataIndex: \"aggregationFunction\",\r\n      key: \"aggregationFunction\",\r\n      align: \"center\",\r\n      render: (value: keyof typeof Aggregations) => Aggregations[value],\r\n    },\r\n    {\r\n      title: \"Visualization\",\r\n      dataIndex: \"visualizationType\",\r\n      key: \"visualizationType\",\r\n      render: (value: keyof typeof Visualizations, record) => (\r\n        <Link to={\"/\" + record.measurement}>{Visualizations[value]}</Link>\r\n      ),\r\n    },\r\n    {\r\n      align: \"center\",\r\n      render: (_, record) => (\r\n        <DeleteOutlined\r\n          style={{ color: \"red\", fontSize: 20 }}\r\n          onClick={() => handleDeleteResearchQuestion(record.id)}\r\n        />\r\n      ),\r\n    },\r\n  ];\r\n\r\n  const EventGroupTable: FC<{ data: any[] }> = ({ data }) => {\r\n    const columns: ColumnType<any>[] = [\r\n      {\r\n        title: \"Event name\",\r\n        dataIndex: \"event\",\r\n        key: \"event\",\r\n        render: (value) =>\r\n          events.find((ev: any) => ev.id === value)?.name || \"\",\r\n      },\r\n      { title: \"Label\", dataIndex: \"label\", key: \"label\" },\r\n      { title: \"Field\", dataIndex: \"accessor\", key: \"accessor\" },\r\n      {\r\n        title: \"Value Policy\",\r\n        dataIndex: \"valuePolicy\",\r\n        key: \"valuePolicy\",\r\n        render: (value: keyof typeof ValuePolicies) => ValuePolicies[value],\r\n      },\r\n      { title: \"Start Value\", dataIndex: \"startValue\", key: \"startValue\" },\r\n      { title: \"End Value\", dataIndex: \"endValue\", key: \"endValue\" },\r\n    ];\r\n\r\n    return (\r\n      <Table\r\n        dataSource={data}\r\n        columns={columns}\r\n        size=\"small\"\r\n        rowKey=\"id\"\r\n      ></Table>\r\n    );\r\n  };\r\n\r\n  return (\r\n    <Flex\r\n      style={{\r\n        height: contentHeight,\r\n        background: colorBgContainer,\r\n        borderRadius: borderRadiusLG,\r\n        padding: 24,\r\n        fontSize: 20,\r\n        color: colorTextDescription,\r\n        position: \"relative\",\r\n      }}\r\n      align=\"center\"\r\n      vertical\r\n    >\r\n      <Button\r\n        type=\"primary\"\r\n        style={{\r\n          position: \"absolute\",\r\n          left: 30,\r\n          bottom: 30,\r\n          zIndex: 100,\r\n        }}\r\n        onClick={() => setRQModalOpened(true)}\r\n      >\r\n        <Flex gap={5} align=\"center\">\r\n          <PlusCircleOutlined style={{ fontSize: 20 }} />\r\n          <span>Add</span>\r\n        </Flex>\r\n      </Button>\r\n      <Table\r\n        dataSource={hypothesis}\r\n        columns={hypothesisTableColumns}\r\n        scroll={{ y: \"calc(600px - 22px - 2*24px)\" }}\r\n        expandable={{\r\n          expandedRowRender: (record: any) => (\r\n            <EventGroupTable data={record.events} />\r\n          ),\r\n        }}\r\n        rowKey=\"id\"\r\n      />\r\n      <Modal\r\n        title=\"Define a new research question\"\r\n        width=\"80vw\"\r\n        height=\"90vh\"\r\n        open={rQModalOpened}\r\n        footer={null}\r\n        centered={true}\r\n        onCancel={() => setRQModalOpened(false)}\r\n      >\r\n        <Form\r\n          variant=\"filled\"\r\n          style={{\r\n            marginTop: 20,\r\n            height: \"calc(90vh - 2*20px - 24px)\",\r\n            overflow: \"auto\",\r\n          }}\r\n          onFinish={handleCreateNewResearchQuestion}\r\n        >\r\n          <Flex align=\"center\" gap={20}>\r\n            <Form.Item\r\n              label=\"Research Question\"\r\n              name=\"name\"\r\n              rules={[{ required: true, message: \"Name is required!\" }]}\r\n              style={{ minWidth: 500 }}\r\n            >\r\n              <Input />\r\n            </Form.Item>\r\n            <Form.Item\r\n              label=\"Measurement\"\r\n              name=\"measurement\"\r\n              style={{ minWidth: 400 }}\r\n              rules={[{ required: true, message: \"This field is required\" }]}\r\n            >\r\n              <Select>\r\n                {Object.keys(Measurement).map((k) => (\r\n                  <Select.Option value={k} key={k}>\r\n                    {Measurement[k as keyof typeof Measurement]}\r\n                  </Select.Option>\r\n                ))}\r\n              </Select>\r\n            </Form.Item>\r\n          </Flex>\r\n\r\n          <Form.Item\r\n            label=\"Desctiption\"\r\n            name=\"description\"\r\n            rules={[{ required: true, message: \"Description is required\" }]}\r\n            style={{ maxWidth: 500 }}\r\n          >\r\n            <Input.TextArea rows={4} />\r\n          </Form.Item>\r\n          <Divider />\r\n          <Flex\r\n            gap={10}\r\n            style={{ color: colorTextDescription, marginBottom: 20 }}\r\n          >\r\n            <InfoCircleOutlined />\r\n            <span>Represents what data is taken into account</span>\r\n          </Flex>\r\n          <Form.List name=\"events\">\r\n            {(fields, { add, remove }) => (\r\n              <>\r\n                {fields.map((field) => (\r\n                  <Form.Item label=\"Event\" key={field.key}>\r\n                    <Flex gap={20}>\r\n                      <Form.Item\r\n                        name={[field.name, \"event\"]}\r\n                        style={{ width: 250, marginBottom: 0 }}\r\n                      >\r\n                        <Select\r\n                          placeholder=\"Event name\"\r\n                          showSearch\r\n                          filterOption={selectSearchHandler}\r\n                          options={events.map((e) => ({\r\n                            label: e.name,\r\n                            value: e.id,\r\n                          }))}\r\n                        />\r\n                      </Form.Item>\r\n                      <Form.Item\r\n                        name={[field.name, \"accessor\"]}\r\n                        style={{ width: 350, marginBottom: 0 }}\r\n                      >\r\n                        <Input placeholder=\"Event data key\" />\r\n                      </Form.Item>\r\n                      <Form.Item\r\n                        name={[field.name, \"label\"]}\r\n                        style={{ width: 350, marginBottom: 0 }}\r\n                      >\r\n                        <Input placeholder=\"Event label\" />\r\n                      </Form.Item>\r\n                      <Form.Item\r\n                        name={[field.name, \"valuePolicy\"]}\r\n                        style={{ width: 350, marginBottom: 0 }}\r\n                      >\r\n                        <Select placeholder=\"Value policy\">\r\n                          {Object.keys(ValuePolicies).map((k) => (\r\n                            <Select.Option value={k} key={k}>\r\n                              {ValuePolicies[k as keyof typeof ValuePolicies]}\r\n                            </Select.Option>\r\n                          ))}\r\n                        </Select>\r\n                      </Form.Item>\r\n                      <Form.Item\r\n                        name={[field.name, \"startValue\"]}\r\n                        style={{ width: 350, marginBottom: 0 }}\r\n                      >\r\n                        <Input placeholder=\"First occurence of event value\" />\r\n                      </Form.Item>\r\n                      <Form.Item\r\n                        name={[field.name, \"endValue\"]}\r\n                        style={{ width: 350, marginBottom: 0 }}\r\n                      >\r\n                        <Input placeholder=\"Last occurence of event value\" />\r\n                      </Form.Item>\r\n                      <MinusCircleOutlined\r\n                        onClick={() => remove(field.name)}\r\n                        style={{ fontSize: 24 }}\r\n                      />\r\n                    </Flex>\r\n                  </Form.Item>\r\n                ))}\r\n                <Form.Item>\r\n                  <Button\r\n                    type=\"primary\"\r\n                    onClick={() => add()}\r\n                    style={{ width: 150 }}\r\n                    icon={<PlusOutlined />}\r\n                  >\r\n                    Add Event\r\n                  </Button>\r\n                </Form.Item>\r\n              </>\r\n            )}\r\n          </Form.List>\r\n          <Divider />\r\n          <Flex gap={10} style={{ color: colorTextDescription }}>\r\n            <InfoCircleOutlined />\r\n            <span>Take into account context in which data is collected</span>\r\n          </Flex>\r\n          <Form.Item\r\n            name=\"usesContext\"\r\n            valuePropName=\"checked\"\r\n            style={{ marginTop: 20 }}\r\n          >\r\n            <Checkbox>Use Context</Checkbox>\r\n          </Form.Item>\r\n          <Form.Item\r\n            label=\"Context Key\"\r\n            name=\"contextAccessor\"\r\n            style={{ maxWidth: 400 }}\r\n          >\r\n            <Input />\r\n          </Form.Item>\r\n          <Divider />\r\n          <Flex\r\n            gap={10}\r\n            style={{\r\n              color: colorTextDescription,\r\n              marginBottom: 20,\r\n            }}\r\n          >\r\n            <InfoCircleOutlined />\r\n            <span>\r\n              How and in what way is data coming from the events is accumulated\r\n              and shown\r\n            </span>\r\n          </Flex>\r\n          <Flex align=\"center\" gap={20}>\r\n            <Form.Item\r\n              label=\"Aggregation Policy\"\r\n              name=\"aggregationPolicy\"\r\n              style={{ minWidth: 400 }}\r\n            >\r\n              <Select>\r\n                {Object.keys(AggregationPolicies).map((k) => (\r\n                  <Select.Option value={k} key={k}>\r\n                    {AggregationPolicies[k as keyof typeof AggregationPolicies]}\r\n                  </Select.Option>\r\n                ))}\r\n              </Select>\r\n            </Form.Item>\r\n            <Form.Item\r\n              label=\"Aggregation Function\"\r\n              name=\"aggregationFunction\"\r\n              style={{ minWidth: 400 }}\r\n            >\r\n              <Select>\r\n                {Object.keys(Aggregations).map((k) => (\r\n                  <Select.Option value={k} key={k}>\r\n                    {Aggregations[k as keyof typeof Aggregations]}\r\n                  </Select.Option>\r\n                ))}\r\n              </Select>\r\n            </Form.Item>\r\n          </Flex>\r\n          <Flex>\r\n            <Form.Item\r\n              label=\"Session Policy\"\r\n              name=\"sessionPolicy\"\r\n              style={{ minWidth: 400 }}\r\n            >\r\n              <Select>\r\n                {Object.keys(SessionPolicy).map((k) => (\r\n                  <Select.Option value={k} key={k}>\r\n                    {SessionPolicy[k as keyof typeof SessionPolicy]}\r\n                  </Select.Option>\r\n                ))}\r\n              </Select>\r\n            </Form.Item>\r\n          </Flex>\r\n          <Form.Item\r\n            label=\"Visualization Type\"\r\n            name=\"visualizationType\"\r\n            style={{ maxWidth: 400 }}\r\n          >\r\n            <Select>\r\n              {Object.keys(Visualizations).map((k) => (\r\n                <Select.Option value={k} key={k}>\r\n                  {Visualizations[k as keyof typeof Visualizations]}\r\n                </Select.Option>\r\n              ))}\r\n            </Select>\r\n          </Form.Item>\r\n\r\n          <Form.Item style={{ marginBottom: 0 }}>\r\n            <Flex justify=\"flex-end\">\r\n              <Button\r\n                type=\"primary\"\r\n                htmlType=\"submit\"\r\n                disabled={newRQLoading}\r\n                style={{ width: 75 }}\r\n              >\r\n                {newRQLoading ? <LoadingOutlined /> : \"Create\"}\r\n              </Button>\r\n            </Flex>\r\n          </Form.Item>\r\n        </Form>\r\n      </Modal>\r\n    </Flex>\r\n  );\r\n};\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx b/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx
+--- a/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx	(date 1718755849546)
+@@ -25,7 +25,7 @@
+   PlusCircleOutlined,
+   PlusOutlined,
+ } from "@ant-design/icons";
+-import { createHypothesis, deleteHypothesis } from "../api/actions.ts";
++import { saveHypothesis, deleteHypothesis } from "../api/actions.ts";
+ import {
+   AggregationPolicies,
+   Aggregations,
+@@ -35,59 +35,108 @@
+   Visualizations,
+ } from "../constants/data.tsx";
+ import { Link } from "react-router-dom";
+-import { selectSearchHandler } from "../utils";
++import { getRelativeContentHeight, selectSearchHandler } from "../utils";
+ import { contentHeight } from "../constants";
+ 
+ export const HypothesisManager = () => {
+   const [hypothesis, setHypothesis] = useState<any[]>([]);
+-  const [events, setEvents] = useState<{ name: string; id: string }[]>([]);
++  const [events, setEvents] = useState<
++    { name: string; id: string; fields: string[] }[]
++  >([]);
+   const { appContext } = useContext(AppContext);
+-
+-  const [rQModalOpened, setRQModalOpened] = useState<boolean>(false);
+-  const [newRQLoading, setNewRQLoading] = useState<boolean>(false);
+-
+   const {
+     token: { colorBgContainer, borderRadiusLG, colorTextDescription },
+   } = theme.useToken();
+ 
++  // FORM state
++  const [form] = Form.useForm();
++  const [rQModalOpened, setRQModalOpened] = useState<boolean>(false);
++  const [newRQLoading, setNewRQLoading] = useState<boolean>(false);
++  const [isEdit, setIsEdit] = useState<boolean>(false);
++  const [editId, setEditId] = useState<string | undefined>(undefined);
++  const [eventKeyOptions, setEventKeyOptions] = useState<
++    {
++      label: string;
++      value: string;
++    }[][]
++  >([[], []]);
++  const [aggregationFunctionDisabled, setAggregationFunctionDisabled] =
++    useState(true);
++  const [eventValueDelimitersDisabled, setEventValueDelimitersDisabled] =
++    useState<boolean[]>([true, true]);
++  const [timeBetweenEnabled, setTimeBetweenEnabled] = useState<boolean>(false);
++  const [showTimeBetween, setShowTimeBetween] = useState(false);
++
++  const filterEventKeyOptions = (
++    value: string,
++    field: number,
++    name: string,
++  ) => {
++    setEventKeyOptions((prev) => {
++      const list = structuredClone(prev);
++      list[field] =
++        events
++          .find((e) => e.id === value)
++          ?.fields.map((f) => ({
++            label: f,
++            value: f,
++          })) || [];
++
++      return list;
++    });
++
++    form.setFieldValue(["events", field, name], undefined);
++  };
++
+   useEffect(() => {
+     getHypothesis(appContext.games.active.id)
+       .then((res: any) => setHypothesis(res))
+       .catch(() => message.error(`Unable to get game events`));
+     getEvents(appContext.games.active.id).then((res: any) =>
+-      setEvents(res.map((ev: any) => ({ id: ev.id, name: ev.name }))),
++      setEvents(
++        res
++          .filter((ev: any) => !ev.reserved)
++          .map((ev: any) => ({ id: ev.id, name: ev.name, fields: ev.fields })),
++      ),
+     );
+   }, [appContext.games.active.id]);
+ 
+-  const handleCreateNewResearchQuestion = (data: any) => {
++  const handleSaveResearchQuestion = (data: any) => {
+     setNewRQLoading(true);
+-    createHypothesis({
+-      name: data.name,
+-      description: data.description,
+-      uses_context: data.usesContext,
+-      measurement: data.measurement,
+-      context_accessor: data.contextAccessor,
+-      session_policy: data.sessionPolicy,
+-      aggregation_policy: data.aggregationPolicy,
+-      aggregation_function: data.aggregationFunction,
+-      visualization_type: data.visualizationType,
+-      game: appContext.games.active.id,
+-      event_groups: data.events
+-        .filter((ev: any) => !!ev.event)
+-        .map((ev: any) => ({
+-          accessor: ev.accessor,
+-          value_policy: ev.valuePolicy,
+-          event: ev.event,
+-          label: ev.label,
+-          end_value: ev.endValue,
+-          start_value: ev.startValue,
+-          game: appContext.games.active.id,
+-        })),
+-    })
++    saveHypothesis(
++      {
++        name: data.name,
++        description: data.description,
++        uses_context: data.usesContext,
++        measurement: data.measurement,
++        context_accessor: data.contextAccessor,
++        session_policy: data.sessionPolicy,
++        aggregation_policy: data.aggregationPolicy,
++        aggregation_function: data.aggregationFunction,
++        visualization_type: data.visualizationType,
++        game: appContext.games.active.id,
++        time_between: data.timeBetween,
++        label_for_time: data.timeLabel,
++        event_groups: data.events
++          .filter((ev: any) => !!ev.event)
++          .map((ev: any) => ({
++            accessor: ev.accessor,
++            value_policy: ev.valuePolicy,
++            event: ev.event,
++            label: ev.label,
++            end_value: ev.endValue,
++            start_value: ev.startValue,
++            game: appContext.games.active.id,
++          })),
++      },
++      isEdit,
++      editId,
++    )
+       .then((res) => {
+         if (res.created) {
+-          console.log(res.data);
+           setRQModalOpened(false);
++          setIsEdit(false);
++          setEditId(undefined);
+           getHypothesis(appContext.games.active.id).then((res: any) =>
+             setHypothesis(res),
+           );
+@@ -112,7 +161,18 @@
+       dataIndex: "name",
+       key: "name",
+       render: (value, record) => (
+-        <Link to={"/" + record.measurement}>{value}</Link>
++        <Link
++          to=""
++          onClick={() => {
++            form.setFieldsValue(record);
++            setRQModalOpened(true);
++            setIsEdit(true);
++            setEditId(record.id);
++            setShowTimeBetween(record.events.length >= 2);
++          }}
++        >
++          {value}
++        </Link>
+       ),
+     },
+     {
+@@ -189,7 +249,10 @@
+     },
+   ];
+ 
+-  const EventGroupTable: FC<{ data: any[] }> = ({ data }) => {
++  const EventGroupTable: FC<{ data: any[]; record: any }> = ({
++    data,
++    record,
++  }) => {
+     const columns: ColumnType<any>[] = [
+       {
+         title: "Event name",
+@@ -211,12 +274,23 @@
+     ];
+ 
+     return (
+-      <Table
+-        dataSource={data}
+-        columns={columns}
+-        size="small"
+-        rowKey="id"
+-      ></Table>
++      <Flex vertical gap={10}>
++        {record.timeBetween && (
++          <Flex
++            gap={10}
++            style={{ color: colorTextDescription, marginBottom: 20 }}
++          >
++            <CheckCircleOutlined style={{ color: "green" }} />
++            <span>Only time between these events is calculated</span>
++          </Flex>
++        )}
++        <Table
++          dataSource={data}
++          columns={columns}
++          size="small"
++          rowKey="id"
++        ></Table>
++      </Flex>
+     );
+   };
+ 
+@@ -242,7 +316,11 @@
+           bottom: 30,
+           zIndex: 100,
+         }}
+-        onClick={() => setRQModalOpened(true)}
++        onClick={() => {
++          setRQModalOpened(true);
++          setIsEdit(false);
++          setEditId(undefined);
++        }}
+       >
+         <Flex gap={5} align="center">
+           <PlusCircleOutlined style={{ fontSize: 20 }} />
+@@ -252,31 +330,36 @@
+       <Table
+         dataSource={hypothesis}
+         columns={hypothesisTableColumns}
+-        scroll={{ y: "calc(600px - 22px - 2*24px)" }}
++        scroll={{ y: getRelativeContentHeight(230) }}
+         expandable={{
+           expandedRowRender: (record: any) => (
+-            <EventGroupTable data={record.events} />
++            <EventGroupTable data={record.events} record={record} />
+           ),
+         }}
+         rowKey="id"
+       />
+       <Modal
+         title="Define a new research question"
+-        width="80vw"
++        width="85vw"
+         height="90vh"
+         open={rQModalOpened}
+         footer={null}
+         centered={true}
+-        onCancel={() => setRQModalOpened(false)}
++        onCancel={() => {
++          setRQModalOpened(false);
++          setIsEdit(false);
++          setEditId(undefined);
++        }}
+       >
+         <Form
+-          variant="filled"
++          form={form}
++          variant="outlined"
+           style={{
+             marginTop: 20,
+             height: "calc(90vh - 2*20px - 24px)",
+             overflow: "auto",
+           }}
+-          onFinish={handleCreateNewResearchQuestion}
++          onFinish={handleSaveResearchQuestion}
+         >
+           <Flex align="center" gap={20}>
+             <Form.Item
+@@ -302,7 +385,6 @@
+               </Select>
+             </Form.Item>
+           </Flex>
+-
+           <Form.Item
+             label="Desctiption"
+             name="description"
+@@ -317,8 +399,33 @@
+             style={{ color: colorTextDescription, marginBottom: 20 }}
+           >
+             <InfoCircleOutlined />
+-            <span>Represents what data is taken into account</span>
++            <span>
++              Represents what data is taken into account, if you want you can
++              just use time between two event occurrences
++            </span>
+           </Flex>
++          {showTimeBetween && (
++            <Flex gap={20} align="center" style={{ marginBottom: 20 }}>
++              <Form.Item
++                name="timeBetween"
++                valuePropName="checked"
++                style={{ margin: 0 }}
++              >
++                <Checkbox
++                  onChange={(e) => setTimeBetweenEnabled(e.target.checked)}
++                >
++                  Use time between events
++                </Checkbox>
++              </Form.Item>
++              <Form.Item
++                label="Label"
++                name="timeLabel"
++                style={{ maxWidth: 400, margin: 0 }}
++              >
++                <Input disabled={!timeBetweenEnabled} />
++              </Form.Item>
++            </Flex>
++          )}
+           <Form.List name="events">
+             {(fields, { add, remove }) => (
+               <>
+@@ -333,6 +440,9 @@
+                           placeholder="Event name"
+                           showSearch
+                           filterOption={selectSearchHandler}
++                          onChange={(value) =>
++                            filterEventKeyOptions(value, field.name, "accessor")
++                          }
+                           options={events.map((e) => ({
+                             label: e.name,
+                             value: e.id,
+@@ -343,19 +453,38 @@
+                         name={[field.name, "accessor"]}
+                         style={{ width: 350, marginBottom: 0 }}
+                       >
+-                        <Input placeholder="Event data key" />
++                        <Select
++                          placeholder="Event data key"
++                          options={eventKeyOptions[field.name]}
++                          disabled={timeBetweenEnabled}
++                        />
+                       </Form.Item>
+                       <Form.Item
+                         name={[field.name, "label"]}
+                         style={{ width: 350, marginBottom: 0 }}
+                       >
+-                        <Input placeholder="Event label" />
++                        <Input
++                          placeholder="Event label"
++                          disabled={timeBetweenEnabled}
++                        />
+                       </Form.Item>
+                       <Form.Item
+                         name={[field.name, "valuePolicy"]}
+-                        style={{ width: 350, marginBottom: 0 }}
++                        style={{ minWidth: 400, marginBottom: 0 }}
+                       >
+-                        <Select placeholder="Value policy">
++                        <Select
++                          placeholder="Value policy"
++                          onChange={(value) =>
++                            setEventValueDelimitersDisabled((prev) => {
++                              const list = [...prev];
++                              list[field.key] =
++                                value !== "time" && value !== "time-sum";
++
++                              return list;
++                            })
++                          }
++                          disabled={timeBetweenEnabled}
++                        >
+                           {Object.keys(ValuePolicies).map((k) => (
+                             <Select.Option value={k} key={k}>
+                               {ValuePolicies[k as keyof typeof ValuePolicies]}
+@@ -367,13 +496,25 @@
+                         name={[field.name, "startValue"]}
+                         style={{ width: 350, marginBottom: 0 }}
+                       >
+-                        <Input placeholder="First occurence of event value" />
++                        <Input
++                          placeholder="First occurence of event value"
++                          disabled={
++                            eventValueDelimitersDisabled[field.name] ||
++                            timeBetweenEnabled
++                          }
++                        />
+                       </Form.Item>
+                       <Form.Item
+                         name={[field.name, "endValue"]}
+                         style={{ width: 350, marginBottom: 0 }}
+                       >
+-                        <Input placeholder="Last occurence of event value" />
++                        <Input
++                          placeholder="Last occurence of event value"
++                          disabled={
++                            eventValueDelimitersDisabled[field.name] ||
++                            timeBetweenEnabled
++                          }
++                        />
+                       </Form.Item>
+                       <MinusCircleOutlined
+                         onClick={() => remove(field.name)}
+@@ -382,16 +523,21 @@
+                     </Flex>
+                   </Form.Item>
+                 ))}
+-                <Form.Item>
+-                  <Button
+-                    type="primary"
+-                    onClick={() => add()}
+-                    style={{ width: 150 }}
+-                    icon={<PlusOutlined />}
+-                  >
+-                    Add Event
+-                  </Button>
+-                </Form.Item>
++                {fields.length < 2 && (
++                  <Form.Item>
++                    <Button
++                      type="primary"
++                      onClick={() => {
++                        fields.length == 1 && setShowTimeBetween(true);
++                        add();
++                      }}
++                      style={{ width: 150 }}
++                      icon={<PlusOutlined />}
++                    >
++                      Add Event
++                    </Button>
++                  </Form.Item>
++                )}
+               </>
+             )}
+           </Form.List>
+@@ -434,7 +580,11 @@
+               name="aggregationPolicy"
+               style={{ minWidth: 400 }}
+             >
+-              <Select>
++              <Select
++                onChange={(value) =>
++                  setAggregationFunctionDisabled(value === "user")
++                }
++              >
+                 {Object.keys(AggregationPolicies).map((k) => (
+                   <Select.Option value={k} key={k}>
+                     {AggregationPolicies[k as keyof typeof AggregationPolicies]}
+@@ -447,7 +597,7 @@
+               name="aggregationFunction"
+               style={{ minWidth: 400 }}
+             >
+-              <Select>
++              <Select disabled={aggregationFunctionDisabled}>
+                 {Object.keys(Aggregations).map((k) => (
+                   <Select.Option value={k} key={k}>
+                     {Aggregations[k as keyof typeof Aggregations]}
+@@ -493,7 +643,13 @@
+                 disabled={newRQLoading}
+                 style={{ width: 75 }}
+               >
+-                {newRQLoading ? <LoadingOutlined /> : "Create"}
++                {newRQLoading ? (
++                  <LoadingOutlined />
++                ) : isEdit ? (
++                  "Update"
++                ) : (
++                  "Create"
++                )}
+               </Button>
+             </Flex>
+           </Form.Item>
+Index: service/models.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import uuid\r\nfrom django.db import models\r\nfrom django.db.models import EmailField\r\n\r\n\r\nclass Game(models.Model):\r\n    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)\r\n    code = models.CharField(max_length=100, unique=True, null=True, blank=True)\r\n    name = models.CharField(max_length=250, null=False, blank=False)\r\n    description = models.TextField(null=False, blank=True)\r\n    created_at = models.DateTimeField(auto_now_add=True)\r\n    aptabase_app_id = models.CharField(max_length=100, null=True, blank=True)\r\n    aptabase_app_name = models.CharField(max_length=100, null=True, blank=True)\r\n\r\n    def __str__(self):\r\n        return f\"({self.id}) {self.name} ({self.code}) [{self.description}]\"\r\n\r\n\r\nclass User(models.Model):\r\n    id = models.CharField(max_length=16, primary_key=True)\r\n    email = EmailField(null=True, blank=True)\r\n    age = models.IntegerField(null=True, blank=True)\r\n    gender = models.CharField(max_length=1, null=True, blank=True)\r\n    os = models.CharField(max_length=100, null=True, blank=True)\r\n    os_version = models.CharField(max_length=100, null=True, blank=True)\r\n    locale = models.CharField(max_length=100, null=True, blank=True)\r\n    country = models.CharField(max_length=100, null=True, blank=True)\r\n    country_code = models.CharField(max_length=20, null=True, blank=True)\r\n    region = models.CharField(max_length=100, null=True, blank=True)\r\n    first_session_id = models.BigIntegerField(null=True, blank=True)\r\n    created_at = models.DateTimeField(auto_now_add=True)\r\n\r\n    game = models.ForeignKey(Game, on_delete=models.CASCADE)\r\n\r\n    def __str__(self):\r\n        return f\"({self.id}) {self.email} {self.age} {self.gender}\"\r\n\r\n\r\nclass ResearchQuestion(models.Model):\r\n    id = models.UUIDField(primary_key=True, default=uuid.uuid4)\r\n    name = models.CharField(max_length=250, null=False, blank=False)\r\n    description = models.TextField(null=False, blank=True)\r\n    # gameplay, learning, engagement, immersion\r\n    measurement = models.CharField(max_length=250, null=False, blank=False, default=\"gameplay\")\r\n    uses_context = models.BooleanField(null=False, default=False)\r\n    context_accessor = models.CharField(max_length=250, null=True, blank=True)\r\n    # only-first, average, each\r\n    session_policy = models.CharField(max_length=250, null=True, blank=True, default=\"\")\r\n    # per-user, globally\r\n    aggregation_policy = models.CharField(max_length=50, null=True, blank=True, default=\"\")\r\n    # sum, count\r\n    aggregation_function = models.CharField(max_length=50, null=True, blank=True, default=\"\")\r\n    # scalar, scatter, bar, line, pie\r\n    visualization_type = models.CharField(max_length=50, null=True, blank=True, default=\"\")\r\n\r\n    created_at = models.DateTimeField(auto_now_add=True)\r\n    game = models.ForeignKey(Game, on_delete=models.CASCADE)\r\n\r\n    def __str__(self):\r\n        return f\"({self.id}) {self.name} [{self.description}]\"\r\n\r\n\r\nclass Event(models.Model):\r\n    id = models.UUIDField(primary_key=True, default=uuid.uuid4)\r\n    name = models.CharField(max_length=250, null=False, blank=False)\r\n    description = models.TextField(null=False, blank=True)\r\n    created_at = models.DateTimeField(auto_now_add=True)\r\n\r\n    game = models.ForeignKey(Game, on_delete=models.CASCADE)\r\n\r\n    def __str__(self):\r\n        return f\"({self.id}) {self.name} [{self.description}]\"\r\n\r\n\r\nclass EventGroup(models.Model):\r\n    id = models.UUIDField(primary_key=True, default=uuid.uuid4)\r\n    label = models.CharField(max_length=250, null=False, blank=False)\r\n    accessor = models.CharField(max_length=250, null=False, blank=True, default=\"value\")\r\n    # value, sum, range, time\r\n    value_policy = models.CharField(max_length=250, null=True, blank=True, default=\"value\")\r\n    start_value = models.CharField(max_length=250, null=True, blank=True, default=\"\")\r\n    end_value = models.CharField(max_length=250, null=True, blank=True, default=\"\")\r\n\r\n    event = models.ForeignKey(Event, on_delete=models.CASCADE)\r\n    game = models.ForeignKey(Game, on_delete=models.CASCADE)\r\n    research_question = models.ForeignKey(ResearchQuestion, related_name='event_groups', null=True, on_delete=models.CASCADE)\r\n    created_at = models.DateTimeField(auto_now_add=True)\r\n\r\n\r\nclass UserEvent(models.Model):\r\n    id = models.UUIDField(primary_key=True, default=uuid.uuid4)\r\n    timestamp = models.DateTimeField(null=False, blank=False)\r\n    session_id = models.BigIntegerField(null=False, blank=False)\r\n\r\n    user = models.ForeignKey(User, on_delete=models.CASCADE)\r\n    event = models.ForeignKey(Event, on_delete=models.CASCADE)\r\n    game = models.ForeignKey(Game, null=True, on_delete=models.SET_NULL)\r\n\r\n    def __str__(self):\r\n        return f\"({self.id}) USER: {self.user} EVENT: {self.event}\"\r\n\r\n\r\nclass UserEventProp(models.Model):\r\n    id = models.UUIDField(primary_key=True, default=uuid.uuid4)\r\n    key = models.CharField(max_length=250, null=False, blank=False)\r\n    type = models.CharField(max_length=250, null=False)\r\n    value = models.CharField(max_length=250, null=False, blank=False)\r\n\r\n    user_event = models.ForeignKey(UserEvent, on_delete=models.CASCADE)\r\n\r\n    def __str__(self):\r\n        return f\"({self.id}) {self.type} {self.key}:  {self.value}\"\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/service/models.py b/service/models.py
+--- a/service/models.py	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/service/models.py	(date 1718749574593)
+@@ -43,6 +43,9 @@
+     # gameplay, learning, engagement, immersion
+     measurement = models.CharField(max_length=250, null=False, blank=False, default="gameplay")
+     uses_context = models.BooleanField(null=False, default=False)
++    # used for doing calculations only between occurrences of the event
++    time_between = models.BooleanField(null=False, default=False)
++    label_for_time = models.CharField(max_length=250, null=True, blank=True, default="")
+     context_accessor = models.CharField(max_length=250, null=True, blank=True)
+     # only-first, average, each
+     session_policy = models.CharField(max_length=250, null=True, blank=True, default="")
+@@ -74,10 +77,10 @@
+ 
+ class EventGroup(models.Model):
+     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+-    label = models.CharField(max_length=250, null=False, blank=False)
+-    accessor = models.CharField(max_length=250, null=False, blank=True, default="value")
++    label = models.CharField(max_length=250, null=True, blank=False)
++    accessor = models.CharField(max_length=250, null=True, blank=True, default="")
+     # value, sum, range, time
+-    value_policy = models.CharField(max_length=250, null=True, blank=True, default="value")
++    value_policy = models.CharField(max_length=250, null=True, blank=True, default="")
+     start_value = models.CharField(max_length=250, null=True, blank=True, default="")
+     end_value = models.CharField(max_length=250, null=True, blank=True, default="")
+ 
+Index: service/views.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import csv\r\nfrom collections import namedtuple\r\nfrom csv import DictReader\r\n\r\nfrom django.core.exceptions import ObjectDoesNotExist\r\nfrom django.db.models import Count, F\r\nfrom django.http import JsonResponse\r\nfrom django_filters.rest_framework import DjangoFilterBackend\r\nfrom rest_framework import viewsets, status\r\nfrom rest_framework.parsers import MultiPartParser, FormParser\r\nfrom rest_framework.utils import json\r\nfrom rest_framework.views import APIView\r\n\r\nfrom service.filters import UserFilter, GameFilter, EventFilter, ResearchQuestionFilter, UserEventPropsFilter, \\\r\n    EventGroupFilter\r\nfrom service.models import Game, User, Event, UserEvent, UserEventProp, ResearchQuestion, EventGroup\r\nfrom service.serializers import (GameSerializer, UserSerializer, EventSerializer, UserEventSerializer,\r\n                                 UserEventPropSerializer, ResearchQuestionSerializer, CSVUploadSerializer,\r\n                                 EventGroupSerializer, ResearchQuestionWriteSerializer)\r\n\r\n\r\nclass CSVUploadAndProcessView(APIView):\r\n    parser_classes = (MultiPartParser, FormParser)\r\n\r\n    def post(self, request, *args, **kwargs):\r\n        game_code = kwargs['game_code']\r\n        game = Game.objects.get(code=game_code)\r\n\r\n        serializer = CSVUploadSerializer(data=request.data)\r\n        if serializer.is_valid():\r\n            csv_file = request.FILES['file']\r\n            decoded_file = csv_file.read().decode('utf-8').splitlines()\r\n            reader: DictReader[any] = csv.DictReader(decoded_file)\r\n\r\n            # Process the CSV data\r\n            for row in reader:\r\n                # Save users recorded for a game\r\n                user_id = row['user_id']\r\n                try:\r\n                    user = User.objects.get(id=user_id, game=game)\r\n                except User.DoesNotExist:\r\n                    user = User.objects.create(\r\n                        id=user_id,\r\n                        os=row['os_name'],\r\n                        os_version=row['os_version'],\r\n                        locale=row['locale'],\r\n                        country=row['country_name'],\r\n                        country_code=row['country_code'],\r\n                        region=row['region_name'],\r\n                        game=game,\r\n                    )\r\n\r\n                try:\r\n                    event = Event.objects.get(name=row['event_name'], game=game)\r\n                except Event.DoesNotExist:\r\n                    event = Event.objects.create(\r\n                        name=row['event_name'],\r\n                        game=game\r\n                    )\r\n\r\n                timestamp = row['timestamp']\r\n                session_id = row['session_id']\r\n\r\n                if user.first_session_id is None:\r\n                    user.first_session_id = session_id\r\n                    user.save()\r\n\r\n                try:\r\n                    user_event = UserEvent.objects.get(timestamp=timestamp,\r\n                                                       session_id=session_id,\r\n                                                       game=game, user=user,\r\n                                                       event=event)\r\n                except UserEvent.DoesNotExist:\r\n                    user_event = UserEvent.objects.create(\r\n                        timestamp=timestamp,\r\n                        session_id=session_id,\r\n                        game=game, user=user,\r\n                        event=event\r\n                    )\r\n\r\n                string_props = json.loads(row['string_props'])\r\n                numeric_props = json.loads(row['numeric_props'])\r\n\r\n                if event.name == \"user-data\" and user.email is None and user.gender is None and user.age is None:\r\n                    user.email = string_props['email']\r\n                    user.gender = string_props['gender']\r\n                    user.age = numeric_props['age']\r\n                    user.save()\r\n\r\n                try:\r\n                    UserEventProp.objects.get(user_event=user_event)\r\n                except UserEventProp.DoesNotExist:\r\n                    for key, value in string_props.items():\r\n                        UserEventProp.objects.create(\r\n                            user_event=user_event,\r\n                            key=key,\r\n                            value=str(value),\r\n                            type=\"string\"\r\n                        )\r\n\r\n                    for key, value in numeric_props.items():\r\n                        UserEventProp.objects.create(\r\n                            user_event=user_event,\r\n                            key=key,\r\n                            value=str(value),\r\n                            type=\"numeric\"\r\n                        )\r\n                except UserEventProp.MultipleObjectsReturned:\r\n                    pass\r\n\r\n            return JsonResponse({'message': 'CSV file processed successfully'}, status=status.HTTP_201_CREATED)\r\n        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)\r\n\r\n\r\nclass AnalyticsView(APIView):\r\n    def get(self, request, *args, **kwargs):\r\n        game_code = kwargs['game_code']\r\n        measurement = kwargs['measurement']\r\n        game = Game.objects.get(code=game_code)\r\n\r\n        rqs = ResearchQuestion.objects.filter(game=game, measurement=measurement)\r\n        result = []\r\n        for rq in rqs:\r\n            result_dic = {\r\n                \"question\": rq.name,\r\n                \"description\": rq.description,\r\n                \"visualization\": rq.visualization_type\r\n            }\r\n\r\n            labels = []\r\n            event_types = EventGroup.objects.filter(research_question=rq)\r\n            for event_type in event_types:\r\n                labels.append({\r\n                    \"name\": event_type.label,\r\n                    \"accessor\": event_type.accessor,\r\n                    \"type\": event_type.value_policy\r\n                })\r\n\r\n            result_dic[\"labels\"] = labels\r\n\r\n            if rq.uses_context:\r\n                context_key = rq.context_accessor\r\n                context_values = []\r\n                context_event = Event.objects.get(name=\"context-changed\")\r\n                ctxs = UserEvent.objects.filter(event=context_event)\r\n                for ctx in ctxs:\r\n                    ctxs_props = UserEventProp.objects.filter(user_event=ctx, key=context_key)\r\n                    for prop in ctxs_props:\r\n                        if prop.value not in context_values:\r\n                            context_values.append(prop.value)\r\n\r\n                result_dic[\"context_values\"] = context_values\r\n\r\n            if rq.aggregation_policy == \"user\":\r\n                users = User.objects.filter(game=game)\r\n                users_data = []\r\n                for user in users:\r\n                    user_data = []\r\n                    if rq.session_policy == \"first\":\r\n                        user_events = UserEvent.objects.filter(session_id=user.first_session_id, user=user)\r\n\r\n                        for event_type in event_types:\r\n                            if event_type.value_policy == \"value\":\r\n                                try:\r\n                                    one_user_event = user_events.filter(event=event_type.event).first()\r\n                                    user_event_props = UserEventProp.objects.get(user_event=one_user_event,\r\n                                                                                 key=event_type.accessor)\r\n                                except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):\r\n                                    # if we have neither event not value to draw from we do not\r\n                                    break\r\n\r\n                                value = user_event_props.value\r\n                                if rq.visualization_type == \"scatter\":\r\n                                    try:\r\n                                        value = int(value)\r\n                                    except ValueError:\r\n                                        break\r\n\r\n                                user_data.append(value)\r\n                            elif event_type.value_policy == \"count\":\r\n                                user_data.append(user_events.filter(event=event_type.event).count())\r\n\r\n                    if len(user_data) != len(event_types):\r\n                        # we don't want to have incomplete data\r\n                        continue\r\n                    users_data.append(user_data)\r\n                result_dic[\"data\"] = users_data\r\n\r\n            result.append(result_dic)\r\n        return JsonResponse({\"results\": result}, status=status.HTTP_200_OK)\r\n\r\n\r\nclass UserStatisticsView(APIView):\r\n    GenderCount = namedtuple('GenderCount', ['gender', 'count'])\r\n    AgeCount = namedtuple('AgeCount', ['age', 'count'])\r\n    RegionCount = namedtuple('RegionCount', ['region', 'count'])\r\n\r\n    def get(self, request, *args, **kwargs):\r\n        game_code = kwargs['game_code']\r\n        game = Game.objects.get(code=game_code)\r\n\r\n        # Group by gender\r\n        gender_counts = User.objects.filter(game=game, gender__isnull=False).values('gender').annotate(\r\n            count=Count('gender'))\r\n        gender_results = [self.GenderCount(gender=item['gender'], count=item['count']) for item in gender_counts]\r\n\r\n        # Group by age\r\n        age_counts = User.objects.filter(game=game, age__isnull=False).values('age').annotate(count=Count('age'))\r\n        age_results = [self.AgeCount(age=item['age'], count=item['count']) for item in age_counts]\r\n\r\n        # Group by region\r\n        region_counts = User.objects.filter(game=game, region__isnull=False).values('region').annotate(\r\n            count=Count('region'))\r\n        region_results = [self.RegionCount(region=item['region'], count=item['count']) for item in region_counts]\r\n\r\n        # Prepare response data\r\n        response_data = {\r\n            'gender_data': [gender._asdict() for gender in gender_results],\r\n            'age_data': [age._asdict() for age in age_results],\r\n            \"region_data\": [region._asdict() for region in region_results]\r\n        }\r\n\r\n        return JsonResponse(response_data)\r\n\r\n\r\nclass GameViewSet(viewsets.ModelViewSet):\r\n    queryset = Game.objects.all()\r\n    serializer_class = GameSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = GameFilter\r\n\r\n    def destroy(self, request, *args, **kwargs):\r\n        instance = self.get_object()\r\n        instance_id = instance.id\r\n        if Event.objects.filter(game=instance).exists():\r\n            return JsonResponse({'error': 'Cannot delete game because of existing events tied to it.'},\r\n                                status=status.HTTP_400_BAD_REQUEST)\r\n        self.perform_destroy(instance)\r\n        return JsonResponse({'id': instance_id}, status=status.HTTP_204_NO_CONTENT)\r\n\r\n\r\nclass UserViewSet(viewsets.ModelViewSet):\r\n    queryset = User.objects.all()\r\n    serializer_class = UserSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = UserFilter\r\n\r\n\r\nclass EventViewSet(viewsets.ModelViewSet):\r\n    queryset = Event.objects.all()\r\n    serializer_class = EventSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = EventFilter\r\n\r\n    def list(self, request, *args, **kwargs):\r\n        queryset = self.filter_queryset(self.get_queryset())\r\n        serializer = self.get_serializer(queryset, many=True)\r\n\r\n        # Get the count of UserEventTable entries for each event\r\n        event_counts = UserEvent.objects.values('event').annotate(count=Count('id'))\r\n        event_count_dict = {str(item['event']): item['count'] for item in event_counts}\r\n\r\n        # get possible event keys\r\n        event_prop_keys = UserEventProp.objects.values('user_event__event', 'key')\r\n        event_prop_keys_dict = {}\r\n        for item in event_prop_keys:\r\n            event_id = str(item['user_event__event'])\r\n            if event_id in event_prop_keys_dict:\r\n                if item['key'] not in event_prop_keys_dict[event_id]:\r\n                    event_prop_keys_dict[event_id].append(item['key'])\r\n            else:\r\n                event_prop_keys_dict[event_id] = [item['key']]\r\n\r\n        # Get all possible enum values for action event\r\n        action_event_props = (UserEventProp.objects.values('user_event__event', 'value')\r\n                              .filter(user_event__event__name__startswith=\"action\"))\r\n\r\n        event_prop_dict = {}\r\n        for item in action_event_props:\r\n            event_id = str(item['user_event__event'])\r\n            if event_id in event_prop_dict:\r\n                if item['value'] not in event_prop_dict[event_id]:\r\n                    event_prop_dict[event_id].append(item['value'])\r\n            else:\r\n                event_prop_dict[event_id] = [item['value']]\r\n\r\n        response_data = serializer.data\r\n        for event in response_data:\r\n            event_id = event['id']\r\n            event['count'] = event_count_dict.get(event_id, 0)\r\n            event['enum'] = event_prop_dict.get(event_id, [])\r\n            event['fields'] = event_prop_keys_dict.get(event_id, [])\r\n            event['reserved'] = event['name'] in ['context-changed', 'user-data']\r\n\r\n        return JsonResponse({\r\n            \"results\": response_data\r\n        })\r\n\r\n\r\nclass ResearchQuestionViewSet(viewsets.ModelViewSet):\r\n    queryset = ResearchQuestion.objects.all()\r\n    serializer_class = ResearchQuestionSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = ResearchQuestionFilter\r\n\r\n    queryset = ResearchQuestion.objects.all()\r\n\r\n    def get_serializer_class(self):\r\n        if self.action in ['create', 'update', 'partial_update']:\r\n            return ResearchQuestionWriteSerializer\r\n        return ResearchQuestionSerializer\r\n\r\n    def create(self, request, *args, **kwargs):\r\n        serializer = self.get_serializer(data=request.data)\r\n        serializer.is_valid(raise_exception=True)\r\n        self.perform_create(serializer)\r\n        headers = self.get_success_headers(serializer.data)\r\n        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED, headers=headers)\r\n\r\n    def update(self, request, *args, **kwargs):\r\n        partial = kwargs.pop('partial', False)\r\n        instance = self.get_object()\r\n        serializer = self.get_serializer(instance, data=request.data, partial=partial)\r\n        serializer.is_valid(raise_exception=True)\r\n        self.perform_update(serializer)\r\n        return JsonResponse(serializer.data)\r\n\r\n\r\nclass UserEventViewSet(viewsets.ModelViewSet):\r\n    queryset = UserEvent.objects.all()\r\n    serializer_class = UserEventSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = UserEvent\r\n\r\n\r\nclass UserEventPropViewSet(viewsets.ModelViewSet):\r\n    queryset = UserEventProp.objects.all()\r\n    serializer_class = UserEventPropSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = UserEventPropsFilter\r\n\r\n\r\nclass EventGroupViewSet(viewsets.ModelViewSet):\r\n    queryset = EventGroup.objects.all()\r\n    serializer_class = EventGroupSerializer\r\n    filter_backends = [DjangoFilterBackend]\r\n    filterset_class = EventGroupFilter\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/service/views.py b/service/views.py
+--- a/service/views.py	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/service/views.py	(date 1718761192304)
+@@ -127,17 +127,18 @@
+                 "visualization": rq.visualization_type
+             }
+ 
++            axes = EventGroup.objects.filter(research_question=rq)
++
++            # labels
+             labels = []
+-            event_types = EventGroup.objects.filter(research_question=rq)
+-            for event_type in event_types:
+-                labels.append({
+-                    "name": event_type.label,
+-                    "accessor": event_type.accessor,
+-                    "type": event_type.value_policy
+-                })
+-
++            if rq.time_between:
++                labels.append(rq.label_for_time)
++            else:
++                for axis in axes:
++                    labels.append(axis.label)
+             result_dic["labels"] = labels
+ 
++            # context values for drop down and keyed data
+             if rq.uses_context:
+                 context_key = rq.context_accessor
+                 context_values = []
+@@ -155,35 +156,65 @@
+                 users = User.objects.filter(game=game)
+                 users_data = []
+                 for user in users:
+-                    user_data = []
+                     if rq.session_policy == "first":
++                        user_data = []
+                         user_events = UserEvent.objects.filter(session_id=user.first_session_id, user=user)
+ 
+-                        for event_type in event_types:
+-                            if event_type.value_policy == "value":
++                        if rq.time_between:
++                            pass
++
++                        for axis in axes:
++                            if axis.value_policy == "value":
+                                 try:
+-                                    one_user_event = user_events.filter(event=event_type.event).first()
+-                                    user_event_props = UserEventProp.objects.get(user_event=one_user_event,
+-                                                                                 key=event_type.accessor)
+-                                except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
+-                                    # if we have neither event not value to draw from we do not
+-                                    break
++                                    # if there's more than one then we use first
++                                    one_user_event = user_events.filter(event=axis.event).first()
++                                    user_event_props = UserEventProp.objects.get(user_event=one_user_event,
++                                                                                 key=axis.accessor)
++                                except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
++                                    # if we have neither event not value to draw from we stop
++                                    break
++
++                                value = user_event_props.value
++                                # we want to enforce int values for scatter and line
++                                if rq.visualization_type == "scatter" or rq.visualization_type == "line":
++                                    try:
++                                        value = int(value)
++                                    except ValueError:
++                                        break
++
++                                user_data.append(value)
++                            elif axis.value_policy == "count":
++                                user_data.append(user_events.filter(event=axis.event).count())
++
++                        users_data.append(user_data)
++                    elif rq.session_policy == "each":
++                        sessions = UserEvent.objects.get(user=user).values_list("session_id", flat=True)
++                        for session_id in sessions:
++                            user_events = UserEvent.objects.filter(session_id=session_id, user=user)
++                            for axis in axes:
++                                if axis.value_policy == "value":
++                                    try:
++                                        # if there's more than one then we use first
++                                        one_user_event = user_events.filter(event=axis.event).first()
++                                        user_event_props = UserEventProp.objects.get(user_event=one_user_event,
++                                                                                     key=axis.accessor)
++                                    except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
++                                        # if we have neither event not value to draw from we stop
++                                        break
+ 
+-                                value = user_event_props.value
+-                                if rq.visualization_type == "scatter":
+-                                    try:
+-                                        value = int(value)
+-                                    except ValueError:
+-                                        break
++                                    value = user_event_props.value
++                                    # we want to enforce int values for scatter and line
++                                    if rq.visualization_type == "scatter" or rq.visualization_type == "line":
++                                        try:
++                                            value = int(value)
++                                        except ValueError:
++                                            break
+ 
+-                                user_data.append(value)
+-                            elif event_type.value_policy == "count":
+-                                user_data.append(user_events.filter(event=event_type.event).count())
++                                    user_data.append(value)
++                                elif axis.value_policy == "count":
++                                    user_data.append(user_events.filter(event=axis.event).count())
+ 
+-                    if len(user_data) != len(event_types):
+-                        # we don't want to have incomplete data
+-                        continue
+-                    users_data.append(user_data)
++                            users_data.append(user_data)
+                 result_dic["data"] = users_data
+ 
+             result.append(result_dic)
+Index: service/serializers.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from rest_framework import serializers\r\nfrom service.models import Game, User, Event, UserEvent, UserEventProp, ResearchQuestion, EventGroup\r\n\r\n\r\nclass CSVUploadSerializer(serializers.Serializer):\r\n    file = serializers.FileField()\r\n\r\n\r\nclass GameSerializer(serializers.ModelSerializer):\r\n    class Meta:\r\n        model = Game\r\n        fields = '__all__'\r\n\r\n\r\nclass UserSerializer(serializers.ModelSerializer):\r\n    class Meta:\r\n        model = User\r\n        fields = '__all__'\r\n\r\n\r\nclass EventSerializer(serializers.ModelSerializer):\r\n    class Meta:\r\n        model = Event\r\n        fields = '__all__'\r\n\r\n\r\nclass UserEventSerializer(serializers.ModelSerializer):\r\n    class Meta:\r\n        model = UserEvent\r\n        fields = '__all__'\r\n\r\n\r\nclass UserEventPropSerializer(serializers.ModelSerializer):\r\n    class Meta:\r\n        model = UserEventProp\r\n        fields = '__all__'\r\n\r\n\r\nclass EventGroupSerializer(serializers.ModelSerializer):\r\n    class Meta:\r\n        model = EventGroup\r\n        fields = '__all__'\r\n\r\n\r\nclass ResearchQuestionSerializer(serializers.ModelSerializer):\r\n    event_groups = EventGroupSerializer(many=True, read_only=True)\r\n\r\n    class Meta:\r\n        model = ResearchQuestion\r\n        fields = fields = ['id', 'name', 'description', 'uses_context', 'context_accessor', 'game',\r\n                           'session_policy', 'aggregation_policy', 'aggregation_function', 'visualization_type',\r\n                           'created_at', 'event_groups', 'measurement']\r\n\r\n\r\nclass ResearchQuestionWriteSerializer(serializers.ModelSerializer):\r\n    event_groups = EventGroupSerializer(many=True, write_only=True)\r\n\r\n    class Meta:\r\n        model = ResearchQuestion\r\n        fields = ['id', 'name', 'description', 'uses_context', 'context_accessor', 'session_policy', 'game',\r\n                  'aggregation_policy', 'aggregation_function', 'visualization_type', 'created_at', 'event_groups',\r\n                  'measurement']\r\n\r\n    def create(self, validated_data):\r\n        event_groups_data = validated_data.pop('event_groups')\r\n        research_question = ResearchQuestion.objects.create(**validated_data)\r\n        for event_group_data in event_groups_data:\r\n            EventGroup.objects.create(research_question=research_question, **event_group_data)\r\n        return research_question\r\n\r\n    def update(self, instance, validated_data):\r\n        event_groups_data = validated_data.pop('event_groups')\r\n        instance = super().update(instance, validated_data)\r\n\r\n        # Clear existing event groups\r\n        instance.eventgroup_set.all().delete()\r\n\r\n        # Create new event groups\r\n        for event_group_data in event_groups_data:\r\n            EventGroup.objects.create(research_question=instance, **event_group_data)\r\n\r\n        return instance\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/service/serializers.py b/service/serializers.py
+--- a/service/serializers.py	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/service/serializers.py	(date 1718757460284)
+@@ -49,7 +49,7 @@
+         model = ResearchQuestion
+         fields = fields = ['id', 'name', 'description', 'uses_context', 'context_accessor', 'game',
+                            'session_policy', 'aggregation_policy', 'aggregation_function', 'visualization_type',
+-                           'created_at', 'event_groups', 'measurement']
++                           'created_at', 'event_groups', 'measurement', 'time_between', 'label_for_time']
+ 
+ 
+ class ResearchQuestionWriteSerializer(serializers.ModelSerializer):
+@@ -59,7 +59,7 @@
+         model = ResearchQuestion
+         fields = ['id', 'name', 'description', 'uses_context', 'context_accessor', 'session_policy', 'game',
+                   'aggregation_policy', 'aggregation_function', 'visualization_type', 'created_at', 'event_groups',
+-                  'measurement']
++                  'measurement', 'time_between', 'label_for_time']
+ 
+     def create(self, validated_data):
+         event_groups_data = validated_data.pop('event_groups')
+@@ -72,8 +72,8 @@
+         event_groups_data = validated_data.pop('event_groups')
+         instance = super().update(instance, validated_data)
+ 
+-        # Clear existing event groups
+-        instance.eventgroup_set.all().delete()
++        # Clear existing event groups using the correct related name
++        instance.event_groups.all().delete()
+ 
+         # Create new event groups
+         for event_group_data in event_groups_data:
+Index: ../serious-game-analytics-tool/src/utils/index.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { ReactNode } from \"react\";\r\nimport { Visualizations } from \"../constants/data.tsx\";\r\nimport { EChartsOption } from \"echarts\";\r\nimport { contentHeight } from \"../constants\";\r\n\r\nexport const mapMenuItem = (\r\n  label: string,\r\n  key: string,\r\n  icon?: ReactNode,\r\n  children?: any[],\r\n  disabled?: boolean,\r\n) => ({\r\n  key,\r\n  icon,\r\n  children,\r\n  label,\r\n  disabled,\r\n});\r\n\r\nexport const snakeCaseToWords = (snakeCaseStr: string) => {\r\n  const words = snakeCaseStr.split(\"_\");\r\n\r\n  const capitalizedWords = words.map((word, idx) => {\r\n    if (idx == 0)\r\n      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();\r\n    return word;\r\n  });\r\n\r\n  return capitalizedWords.join(\" \");\r\n};\r\n\r\nexport const getLocalFormattedDateTime = (dateTimeString: string) => {\r\n  const date = new Date(dateTimeString);\r\n  const formatter = new Intl.DateTimeFormat(navigator.language);\r\n  return formatter.format(date);\r\n};\r\n\r\nexport const debounce = (func: any, delay: number) => {\r\n  let timeout: any;\r\n\r\n  return (...args: any) => {\r\n    if (timeout) clearTimeout(timeout);\r\n\r\n    timeout = setTimeout(() => {\r\n      func(...args);\r\n      timeout = null;\r\n    }, delay);\r\n  };\r\n};\r\n\r\nexport const getEChartsOptionsFromData = (\r\n  type: keyof typeof Visualizations,\r\n  labels: any[],\r\n  data: any,\r\n) => {\r\n  const options: Omit<EChartsOption, \"series\"> = {\r\n    xAxis: {},\r\n    yAxis: {},\r\n    tooltip: {\r\n      trigger: \"item\",\r\n      formatter: (params: any) =>\r\n        `${labels[0].name}: ${params.data[0]}<br/>${labels[1].name}: ${params.data[1]}`,\r\n    },\r\n    series: [\r\n      {\r\n        symbolSize: 15,\r\n        data: data,\r\n        type,\r\n      },\r\n    ],\r\n  };\r\n\r\n  switch (type) {\r\n    case \"scatter\":\r\n      options.xAxis = {\r\n        name: labels[0].name,\r\n        nameLocation: \"middle\",\r\n        nameGap: 30,\r\n        nameTextStyle: {\r\n          fontWeight: \"bold\",\r\n        },\r\n      };\r\n      options.yAxis = {\r\n        name: labels[1].name,\r\n        nameRotate: 90,\r\n        nameLocation: \"middle\",\r\n        nameGap: 30,\r\n        nameTextStyle: {\r\n          fontWeight: \"bold\",\r\n        },\r\n      };\r\n      break;\r\n    case \"bar\":\r\n      break;\r\n    case \"line\":\r\n      break;\r\n    case \"pie\":\r\n      break;\r\n    case \"scalar\":\r\n      return null;\r\n    default:\r\n      return null;\r\n  }\r\n\r\n  return options;\r\n};\r\n\r\nexport const selectSearchHandler = (input: string, option: any) => {\r\n  return (\"\" + option?.label).toLowerCase().includes(input.toLowerCase());\r\n};\r\n\r\nexport const getColorForText = (text: string) => {\r\n  const colors = [\r\n    \"blue\",\r\n    \"purple\",\r\n    \"cyan\",\r\n    \"green\",\r\n    \"magenta\",\r\n    \"pink\",\r\n    \"red\",\r\n    \"orange\",\r\n    \"yellow\",\r\n    \"volcano\",\r\n    \"geekblue\",\r\n    \"lime\",\r\n    \"gold\",\r\n  ];\r\n\r\n  // Simple hash function to convert text to a numeric value\r\n  let hash = 0;\r\n  for (let i = 0; i < text.length; i++) {\r\n    hash = text.charCodeAt(i) + ((hash << 7) - hash);\r\n  }\r\n\r\n  // Use the hash value to choose a color\r\n  const index = Math.abs(hash) % colors.length;\r\n  return colors[index];\r\n};\r\n\r\nexport const getRelativeContentHeight = (subtract: number) => {\r\n  return (\r\n    contentHeight.substring(0, contentHeight.length - 1) +\r\n    \" - \" +\r\n    subtract +\r\n    \"px)\"\r\n  );\r\n};\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../serious-game-analytics-tool/src/utils/index.ts b/../serious-game-analytics-tool/src/utils/index.ts
+--- a/../serious-game-analytics-tool/src/utils/index.ts	(revision 703d28568b0bbd9f9484a828642e38e7b94b1a97)
++++ b/../serious-game-analytics-tool/src/utils/index.ts	(date 1718759474268)
+@@ -59,7 +59,7 @@
+     tooltip: {
+       trigger: "item",
+       formatter: (params: any) =>
+-        `${labels[0].name}: ${params.data[0]}<br/>${labels[1].name}: ${params.data[1]}`,
++        `${labels[0]}: ${params.data[0]}<br/>${labels[1]}: ${params.data[1]}`,
+     },
+     series: [
+       {
+@@ -73,7 +73,7 @@
+   switch (type) {
+     case "scatter":
+       options.xAxis = {
+-        name: labels[0].name,
++        name: labels[0],
+         nameLocation: "middle",
+         nameGap: 30,
+         nameTextStyle: {
+@@ -81,7 +81,7 @@
+         },
+       };
+       options.yAxis = {
+-        name: labels[1].name,
++        name: labels[1],
+         nameRotate: 90,
+         nameLocation: "middle",
+         nameGap: 30,
