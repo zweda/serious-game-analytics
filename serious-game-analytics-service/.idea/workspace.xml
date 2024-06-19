@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="more changes">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/service/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/views.py" afterDir="false" />
-    </list>
+    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="gitignore clearly not vorking" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -42,7 +39,6 @@
     "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/Iva/Projects/serious-game-analytics/serious-game-analytics-service/sga/app",
@@ -108,7 +104,7 @@
       <workItem from="1718518361387" duration="1020000" />
       <workItem from="1718542823204" duration="84892000" />
       <workItem from="1718761676704" duration="881000" />
-      <workItem from="1718762575955" duration="511000" />
+      <workItem from="1718762575955" duration="851000" />
     </task>
     <task id="LOCAL-00001" summary="more changes">
       <option name="closed" value="true" />
@@ -142,7 +138,15 @@
       <option name="project" value="LOCAL" />
       <updated>1718762755033</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="gitignore clearly not vorking">
+      <option name="closed" value="true" />
+      <created>1718763419583</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1718763419583</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -162,6 +166,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="no sql" />
     <MESSAGE value="more changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="more changes" />
+    <MESSAGE value="gitignore clearly not vorking" />
+    <option name="LAST_COMMIT_MESSAGE" value="gitignore clearly not vorking" />
   </component>
 </project>
