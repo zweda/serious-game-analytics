@@ -42,10 +42,15 @@ export const deleteGame = async (id: string) => {
   };
 };
 
-export const createHypothesis = async (data: any) => {
+export const saveHypothesis = async (
+  data: any,
+  isEdit?: boolean,
+  id?: string,
+) => {
+  console.log(data);
   const { data: rq, ok } = await httpRequest(
-    "research-questions",
-    "post",
+    "research-questions" + (isEdit ? "/" + id : ""),
+    isEdit ? "put" : "post",
     null,
     data,
   );

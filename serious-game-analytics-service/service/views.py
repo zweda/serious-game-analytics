@@ -127,17 +127,18 @@ class AnalyticsView(APIView):
                 "visualization": rq.visualization_type
             }
 
-            labels = []
-            event_types = EventGroup.objects.filter(research_question=rq)
-            for event_type in event_types:
-                labels.append({
-                    "name": event_type.label,
-                    "accessor": event_type.accessor,
-                    "type": event_type.value_policy
-                })
+            axes = EventGroup.objects.filter(research_question=rq)
 
+            # labels
+            labels = []
+            if rq.time_between:
+                labels.append(rq.label_for_time)
+            else:
+                for axis in axes:
+                    labels.append(axis.label)
             result_dic["labels"] = labels
 
+            # context values for drop down and keyed data
             if rq.uses_context:
                 context_key = rq.context_accessor
                 context_values = []
@@ -155,35 +156,65 @@ class AnalyticsView(APIView):
                 users = User.objects.filter(game=game)
                 users_data = []
                 for user in users:
-                    user_data = []
                     if rq.session_policy == "first":
+                        user_data = []
                         user_events = UserEvent.objects.filter(session_id=user.first_session_id, user=user)
 
-                        for event_type in event_types:
-                            if event_type.value_policy == "value":
+                        if rq.time_between:
+                            pass
+
+                        for axis in axes:
+                            if axis.value_policy == "value":
                                 try:
-                                    one_user_event = user_events.filter(event=event_type.event).first()
+                                    # if there's more than one then we use first
+                                    one_user_event = user_events.filter(event=axis.event).first()
                                     user_event_props = UserEventProp.objects.get(user_event=one_user_event,
-                                                                                 key=event_type.accessor)
+                                                                                 key=axis.accessor)
                                 except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
-                                    # if we have neither event not value to draw from we do not
+                                    # if we have neither event not value to draw from we stop
                                     break
 
                                 value = user_event_props.value
-                                if rq.visualization_type == "scatter":
+                                # we want to enforce int values for scatter and line
+                                if rq.visualization_type == "scatter" or rq.visualization_type == "line":
                                     try:
                                         value = int(value)
                                     except ValueError:
                                         break
 
                                 user_data.append(value)
-                            elif event_type.value_policy == "count":
-                                user_data.append(user_events.filter(event=event_type.event).count())
+                            elif axis.value_policy == "count":
+                                user_data.append(user_events.filter(event=axis.event).count())
 
-                    if len(user_data) != len(event_types):
-                        # we don't want to have incomplete data
-                        continue
-                    users_data.append(user_data)
+                        users_data.append(user_data)
+                    elif rq.session_policy == "each":
+                        sessions = UserEvent.objects.get(user=user).values_list("session_id", flat=True)
+                        for session_id in sessions:
+                            user_events = UserEvent.objects.filter(session_id=session_id, user=user)
+                            for axis in axes:
+                                if axis.value_policy == "value":
+                                    try:
+                                        # if there's more than one then we use first
+                                        one_user_event = user_events.filter(event=axis.event).first()
+                                        user_event_props = UserEventProp.objects.get(user_event=one_user_event,
+                                                                                     key=axis.accessor)
+                                    except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
+                                        # if we have neither event not value to draw from we stop
+                                        break
+
+                                    value = user_event_props.value
+                                    # we want to enforce int values for scatter and line
+                                    if rq.visualization_type == "scatter" or rq.visualization_type == "line":
+                                        try:
+                                            value = int(value)
+                                        except ValueError:
+                                            break
+
+                                    user_data.append(value)
+                                elif axis.value_policy == "count":
+                                    user_data.append(user_events.filter(event=axis.event).count())
+
+                            users_data.append(user_data)
                 result_dic["data"] = users_data
 
             result.append(result_dic)

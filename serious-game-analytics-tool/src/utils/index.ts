@@ -59,7 +59,7 @@ export const getEChartsOptionsFromData = (
     tooltip: {
       trigger: "item",
       formatter: (params: any) =>
-        `${labels[0].name}: ${params.data[0]}<br/>${labels[1].name}: ${params.data[1]}`,
+        `${labels[0]}: ${params.data[0]}<br/>${labels[1]}: ${params.data[1]}`,
     },
     series: [
       {
@@ -73,7 +73,7 @@ export const getEChartsOptionsFromData = (
   switch (type) {
     case "scatter":
       options.xAxis = {
-        name: labels[0].name,
+        name: labels[0],
         nameLocation: "middle",
         nameGap: 30,
         nameTextStyle: {
@@ -81,7 +81,7 @@ export const getEChartsOptionsFromData = (
         },
       };
       options.yAxis = {
-        name: labels[1].name,
+        name: labels[1],
         nameRotate: 90,
         nameLocation: "middle",
         nameGap: 30,

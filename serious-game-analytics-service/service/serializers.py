@@ -49,7 +49,7 @@ class ResearchQuestionSerializer(serializers.ModelSerializer):
         model = ResearchQuestion
         fields = fields = ['id', 'name', 'description', 'uses_context', 'context_accessor', 'game',
                            'session_policy', 'aggregation_policy', 'aggregation_function', 'visualization_type',
-                           'created_at', 'event_groups', 'measurement']
+                           'created_at', 'event_groups', 'measurement', 'time_between', 'label_for_time']
 
 
 class ResearchQuestionWriteSerializer(serializers.ModelSerializer):
@@ -59,7 +59,7 @@ class ResearchQuestionWriteSerializer(serializers.ModelSerializer):
         model = ResearchQuestion
         fields = ['id', 'name', 'description', 'uses_context', 'context_accessor', 'session_policy', 'game',
                   'aggregation_policy', 'aggregation_function', 'visualization_type', 'created_at', 'event_groups',
-                  'measurement']
+                  'measurement', 'time_between', 'label_for_time']
 
     def create(self, validated_data):
         event_groups_data = validated_data.pop('event_groups')
@@ -72,8 +72,8 @@ class ResearchQuestionWriteSerializer(serializers.ModelSerializer):
         event_groups_data = validated_data.pop('event_groups')
         instance = super().update(instance, validated_data)
 
-        # Clear existing event groups
-        instance.eventgroup_set.all().delete()
+        # Clear existing event groups using the correct related name
+        instance.event_groups.all().delete()
 
         # Create new event groups
         for event_group_data in event_groups_data:

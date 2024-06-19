@@ -25,7 +25,7 @@ import {
   PlusCircleOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { createHypothesis, deleteHypothesis } from "../api/actions.ts";
+import { saveHypothesis, deleteHypothesis } from "../api/actions.ts";
 import {
   AggregationPolicies,
   Aggregations,
@@ -35,59 +35,108 @@ import {
   Visualizations,
 } from "../constants/data.tsx";
 import { Link } from "react-router-dom";
-import { selectSearchHandler } from "../utils";
+import { getRelativeContentHeight, selectSearchHandler } from "../utils";
 import { contentHeight } from "../constants";
 
 export const HypothesisManager = () => {
   const [hypothesis, setHypothesis] = useState<any[]>([]);
-  const [events, setEvents] = useState<{ name: string; id: string }[]>([]);
+  const [events, setEvents] = useState<
+    { name: string; id: string; fields: string[] }[]
+  >([]);
   const { appContext } = useContext(AppContext);
-
-  const [rQModalOpened, setRQModalOpened] = useState<boolean>(false);
-  const [newRQLoading, setNewRQLoading] = useState<boolean>(false);
-
   const {
     token: { colorBgContainer, borderRadiusLG, colorTextDescription },
   } = theme.useToken();
+
+  // FORM state
+  const [form] = Form.useForm();
+  const [rQModalOpened, setRQModalOpened] = useState<boolean>(false);
+  const [newRQLoading, setNewRQLoading] = useState<boolean>(false);
+  const [isEdit, setIsEdit] = useState<boolean>(false);
+  const [editId, setEditId] = useState<string | undefined>(undefined);
+  const [eventKeyOptions, setEventKeyOptions] = useState<
+    {
+      label: string;
+      value: string;
+    }[][]
+  >([[], []]);
+  const [aggregationFunctionDisabled, setAggregationFunctionDisabled] =
+    useState(true);
+  const [eventValueDelimitersDisabled, setEventValueDelimitersDisabled] =
+    useState<boolean[]>([true, true]);
+  const [timeBetweenEnabled, setTimeBetweenEnabled] = useState<boolean>(false);
+  const [showTimeBetween, setShowTimeBetween] = useState(false);
+
+  const filterEventKeyOptions = (
+    value: string,
+    field: number,
+    name: string,
+  ) => {
+    setEventKeyOptions((prev) => {
+      const list = structuredClone(prev);
+      list[field] =
+        events
+          .find((e) => e.id === value)
+          ?.fields.map((f) => ({
+            label: f,
+            value: f,
+          })) || [];
+
+      return list;
+    });
+
+    form.setFieldValue(["events", field, name], undefined);
+  };
 
   useEffect(() => {
     getHypothesis(appContext.games.active.id)
       .then((res: any) => setHypothesis(res))
       .catch(() => message.error(`Unable to get game events`));
     getEvents(appContext.games.active.id).then((res: any) =>
-      setEvents(res.map((ev: any) => ({ id: ev.id, name: ev.name }))),
+      setEvents(
+        res
+          .filter((ev: any) => !ev.reserved)
+          .map((ev: any) => ({ id: ev.id, name: ev.name, fields: ev.fields })),
+      ),
     );
   }, [appContext.games.active.id]);
 
-  const handleCreateNewResearchQuestion = (data: any) => {
+  const handleSaveResearchQuestion = (data: any) => {
     setNewRQLoading(true);
-    createHypothesis({
-      name: data.name,
-      description: data.description,
-      uses_context: data.usesContext,
-      measurement: data.measurement,
-      context_accessor: data.contextAccessor,
-      session_policy: data.sessionPolicy,
-      aggregation_policy: data.aggregationPolicy,
-      aggregation_function: data.aggregationFunction,
-      visualization_type: data.visualizationType,
-      game: appContext.games.active.id,
-      event_groups: data.events
-        .filter((ev: any) => !!ev.event)
-        .map((ev: any) => ({
-          accessor: ev.accessor,
-          value_policy: ev.valuePolicy,
-          event: ev.event,
-          label: ev.label,
-          end_value: ev.endValue,
-          start_value: ev.startValue,
-          game: appContext.games.active.id,
-        })),
-    })
+    saveHypothesis(
+      {
+        name: data.name,
+        description: data.description,
+        uses_context: data.usesContext,
+        measurement: data.measurement,
+        context_accessor: data.contextAccessor,
+        session_policy: data.sessionPolicy,
+        aggregation_policy: data.aggregationPolicy,
+        aggregation_function: data.aggregationFunction,
+        visualization_type: data.visualizationType,
+        game: appContext.games.active.id,
+        time_between: data.timeBetween,
+        label_for_time: data.timeLabel,
+        event_groups: data.events
+          .filter((ev: any) => !!ev.event)
+          .map((ev: any) => ({
+            accessor: ev.accessor,
+            value_policy: ev.valuePolicy,
+            event: ev.event,
+            label: ev.label,
+            end_value: ev.endValue,
+            start_value: ev.startValue,
+            game: appContext.games.active.id,
+          })),
+      },
+      isEdit,
+      editId,
+    )
       .then((res) => {
         if (res.created) {
-          console.log(res.data);
           setRQModalOpened(false);
+          setIsEdit(false);
+          setEditId(undefined);
           getHypothesis(appContext.games.active.id).then((res: any) =>
             setHypothesis(res),
           );
@@ -112,7 +161,18 @@ export const HypothesisManager = () => {
       dataIndex: "name",
       key: "name",
       render: (value, record) => (
-        <Link to={"/" + record.measurement}>{value}</Link>
+        <Link
+          to=""
+          onClick={() => {
+            form.setFieldsValue(record);
+            setRQModalOpened(true);
+            setIsEdit(true);
+            setEditId(record.id);
+            setShowTimeBetween(record.events.length >= 2);
+          }}
+        >
+          {value}
+        </Link>
       ),
     },
     {
@@ -189,7 +249,10 @@ export const HypothesisManager = () => {
     },
   ];
 
-  const EventGroupTable: FC<{ data: any[] }> = ({ data }) => {
+  const EventGroupTable: FC<{ data: any[]; record: any }> = ({
+    data,
+    record,
+  }) => {
     const columns: ColumnType<any>[] = [
       {
         title: "Event name",
@@ -211,12 +274,23 @@ export const HypothesisManager = () => {
     ];
 
     return (
-      <Table
-        dataSource={data}
-        columns={columns}
-        size="small"
-        rowKey="id"
-      ></Table>
+      <Flex vertical gap={10}>
+        {record.timeBetween && (
+          <Flex
+            gap={10}
+            style={{ color: colorTextDescription, marginBottom: 20 }}
+          >
+            <CheckCircleOutlined style={{ color: "green" }} />
+            <span>Only time between these events is calculated</span>
+          </Flex>
+        )}
+        <Table
+          dataSource={data}
+          columns={columns}
+          size="small"
+          rowKey="id"
+        ></Table>
+      </Flex>
     );
   };
 
@@ -242,7 +316,11 @@ export const HypothesisManager = () => {
           bottom: 30,
           zIndex: 100,
         }}
-        onClick={() => setRQModalOpened(true)}
+        onClick={() => {
+          setRQModalOpened(true);
+          setIsEdit(false);
+          setEditId(undefined);
+        }}
       >
         <Flex gap={5} align="center">
           <PlusCircleOutlined style={{ fontSize: 20 }} />
@@ -252,31 +330,36 @@ export const HypothesisManager = () => {
       <Table
         dataSource={hypothesis}
         columns={hypothesisTableColumns}
-        scroll={{ y: "calc(600px - 22px - 2*24px)" }}
+        scroll={{ y: getRelativeContentHeight(230) }}
         expandable={{
           expandedRowRender: (record: any) => (
-            <EventGroupTable data={record.events} />
+            <EventGroupTable data={record.events} record={record} />
           ),
         }}
         rowKey="id"
       />
       <Modal
         title="Define a new research question"
-        width="80vw"
+        width="85vw"
         height="90vh"
         open={rQModalOpened}
         footer={null}
         centered={true}
-        onCancel={() => setRQModalOpened(false)}
+        onCancel={() => {
+          setRQModalOpened(false);
+          setIsEdit(false);
+          setEditId(undefined);
+        }}
       >
         <Form
-          variant="filled"
+          form={form}
+          variant="outlined"
           style={{
             marginTop: 20,
             height: "calc(90vh - 2*20px - 24px)",
             overflow: "auto",
           }}
-          onFinish={handleCreateNewResearchQuestion}
+          onFinish={handleSaveResearchQuestion}
         >
           <Flex align="center" gap={20}>
             <Form.Item
@@ -302,7 +385,6 @@ export const HypothesisManager = () => {
               </Select>
             </Form.Item>
           </Flex>
-
           <Form.Item
             label="Desctiption"
             name="description"
@@ -317,8 +399,33 @@ export const HypothesisManager = () => {
             style={{ color: colorTextDescription, marginBottom: 20 }}
           >
             <InfoCircleOutlined />
-            <span>Represents what data is taken into account</span>
+            <span>
+              Represents what data is taken into account, if you want you can
+              just use time between two event occurrences
+            </span>
           </Flex>
+          {showTimeBetween && (
+            <Flex gap={20} align="center" style={{ marginBottom: 20 }}>
+              <Form.Item
+                name="timeBetween"
+                valuePropName="checked"
+                style={{ margin: 0 }}
+              >
+                <Checkbox
+                  onChange={(e) => setTimeBetweenEnabled(e.target.checked)}
+                >
+                  Use time between events
+                </Checkbox>
+              </Form.Item>
+              <Form.Item
+                label="Label"
+                name="timeLabel"
+                style={{ maxWidth: 400, margin: 0 }}
+              >
+                <Input disabled={!timeBetweenEnabled} />
+              </Form.Item>
+            </Flex>
+          )}
           <Form.List name="events">
             {(fields, { add, remove }) => (
               <>
@@ -333,6 +440,9 @@ export const HypothesisManager = () => {
                           placeholder="Event name"
                           showSearch
                           filterOption={selectSearchHandler}
+                          onChange={(value) =>
+                            filterEventKeyOptions(value, field.name, "accessor")
+                          }
                           options={events.map((e) => ({
                             label: e.name,
                             value: e.id,
@@ -343,19 +453,38 @@ export const HypothesisManager = () => {
                         name={[field.name, "accessor"]}
                         style={{ width: 350, marginBottom: 0 }}
                       >
-                        <Input placeholder="Event data key" />
+                        <Select
+                          placeholder="Event data key"
+                          options={eventKeyOptions[field.name]}
+                          disabled={timeBetweenEnabled}
+                        />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "label"]}
                         style={{ width: 350, marginBottom: 0 }}
                       >
-                        <Input placeholder="Event label" />
+                        <Input
+                          placeholder="Event label"
+                          disabled={timeBetweenEnabled}
+                        />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "valuePolicy"]}
-                        style={{ width: 350, marginBottom: 0 }}
+                        style={{ minWidth: 400, marginBottom: 0 }}
                       >
-                        <Select placeholder="Value policy">
+                        <Select
+                          placeholder="Value policy"
+                          onChange={(value) =>
+                            setEventValueDelimitersDisabled((prev) => {
+                              const list = [...prev];
+                              list[field.key] =
+                                value !== "time" && value !== "time-sum";
+
+                              return list;
+                            })
+                          }
+                          disabled={timeBetweenEnabled}
+                        >
                           {Object.keys(ValuePolicies).map((k) => (
                             <Select.Option value={k} key={k}>
                               {ValuePolicies[k as keyof typeof ValuePolicies]}
@@ -367,13 +496,25 @@ export const HypothesisManager = () => {
                         name={[field.name, "startValue"]}
                         style={{ width: 350, marginBottom: 0 }}
                       >
-                        <Input placeholder="First occurence of event value" />
+                        <Input
+                          placeholder="First occurence of event value"
+                          disabled={
+                            eventValueDelimitersDisabled[field.name] ||
+                            timeBetweenEnabled
+                          }
+                        />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "endValue"]}
                         style={{ width: 350, marginBottom: 0 }}
                       >
-                        <Input placeholder="Last occurence of event value" />
+                        <Input
+                          placeholder="Last occurence of event value"
+                          disabled={
+                            eventValueDelimitersDisabled[field.name] ||
+                            timeBetweenEnabled
+                          }
+                        />
                       </Form.Item>
                       <MinusCircleOutlined
                         onClick={() => remove(field.name)}
@@ -382,16 +523,21 @@ export const HypothesisManager = () => {
                     </Flex>
                   </Form.Item>
                 ))}
-                <Form.Item>
-                  <Button
-                    type="primary"
-                    onClick={() => add()}
-                    style={{ width: 150 }}
-                    icon={<PlusOutlined />}
-                  >
-                    Add Event
-                  </Button>
-                </Form.Item>
+                {fields.length < 2 && (
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        fields.length == 1 && setShowTimeBetween(true);
+                        add();
+                      }}
+                      style={{ width: 150 }}
+                      icon={<PlusOutlined />}
+                    >
+                      Add Event
+                    </Button>
+                  </Form.Item>
+                )}
               </>
             )}
           </Form.List>
@@ -434,7 +580,11 @@ export const HypothesisManager = () => {
               name="aggregationPolicy"
               style={{ minWidth: 400 }}
             >
-              <Select>
+              <Select
+                onChange={(value) =>
+                  setAggregationFunctionDisabled(value === "user")
+                }
+              >
                 {Object.keys(AggregationPolicies).map((k) => (
                   <Select.Option value={k} key={k}>
                     {AggregationPolicies[k as keyof typeof AggregationPolicies]}
@@ -447,7 +597,7 @@ export const HypothesisManager = () => {
               name="aggregationFunction"
               style={{ minWidth: 400 }}
             >
-              <Select>
+              <Select disabled={aggregationFunctionDisabled}>
                 {Object.keys(Aggregations).map((k) => (
                   <Select.Option value={k} key={k}>
                     {Aggregations[k as keyof typeof Aggregations]}
@@ -493,7 +643,13 @@ export const HypothesisManager = () => {
                 disabled={newRQLoading}
                 style={{ width: 75 }}
               >
-                {newRQLoading ? <LoadingOutlined /> : "Create"}
+                {newRQLoading ? (
+                  <LoadingOutlined />
+                ) : isEdit ? (
+                  "Update"
+                ) : (
+                  "Create"
+                )}
               </Button>
             </Flex>
           </Form.Item>

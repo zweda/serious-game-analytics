@@ -94,6 +94,8 @@ export const getHypothesis = async (gameId: string) => {
       aggregationPolicy: rq["aggregation_policy"],
       aggregationFunction: rq["aggregation_function"],
       visualizationType: rq["visualization_type"],
+      timeBetween: rq["time_between"],
+      timeLabel: rq["label_for_time"],
       events: rq["event_groups"].map((eg: any) => ({
         id: eg.id,
         accessor: eg.accessor,

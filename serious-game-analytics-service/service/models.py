@@ -43,6 +43,9 @@ class ResearchQuestion(models.Model):
     # gameplay, learning, engagement, immersion
     measurement = models.CharField(max_length=250, null=False, blank=False, default="gameplay")
     uses_context = models.BooleanField(null=False, default=False)
+    # used for doing calculations only between occurrences of the event
+    time_between = models.BooleanField(null=False, default=False)
+    label_for_time = models.CharField(max_length=250, null=True, blank=True, default="")
     context_accessor = models.CharField(max_length=250, null=True, blank=True)
     # only-first, average, each
     session_policy = models.CharField(max_length=250, null=True, blank=True, default="")
@@ -74,10 +77,10 @@ class Event(models.Model):
 
 class EventGroup(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    label = models.CharField(max_length=250, null=False, blank=False)
-    accessor = models.CharField(max_length=250, null=False, blank=True, default="value")
+    label = models.CharField(max_length=250, null=True, blank=False)
+    accessor = models.CharField(max_length=250, null=True, blank=True, default="")
     # value, sum, range, time
-    value_policy = models.CharField(max_length=250, null=True, blank=True, default="value")
+    value_policy = models.CharField(max_length=250, null=True, blank=True, default="")
     start_value = models.CharField(max_length=250, null=True, blank=True, default="")
     end_value = models.CharField(max_length=250, null=True, blank=True, default="")
 
