@@ -196,80 +196,91 @@ class AnalyticsView(APIView):
                             if ctx["ended"] is not None:
                                 user_events = user_events.filter(timestamp__lte=ctx["ended"])
 
-                        for axis in axes:
-                            axis_events = user_events.filter(event=axis.event)
-                            if axis.value_policy == "value":
-                                try:
-                                    # if there's more than one then we use first
-                                    one_user_event = axis_events.first()
-                                    user_event_value = UserEventProp.objects.get(user_event=one_user_event,
-                                                                                 key=axis.accessor)
-                                except UserEventProp.DoesNotExist:
-                                    # if we have neither event not value to draw from we stop
-                                    break
-
-                                try:
-                                    value = float(user_event_value.value)
-                                except TypeError:
-                                    value = user_event_value.value
-
-                                session_data["data"].append(value)
-
-                            elif axis.value_policy == "count":
-                                session_data["data"].append(user_events.filter(event=axis.event).count())
-                            elif axis.value_policy == "average" or axis.value_policy == "sum":
-                                nbr = user_events.filter(event=axis.event).count()
-                                values_sum = 0
-                                user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
-                                                                                  user_event__in=user_events).
-                                                     values_list("value", flat=True))
-
-                                for value in user_event_values:
+                        if rq.time_between:
+                            event_ids = axes[:2].values_list("event", flat=True)
+                            start = user_events.filter(event_id=event_ids[0]).first()
+                            if start is None:
+                                start = user_events.first()
+                            end = user_events.filter(event_id=event_ids[1]).first()
+                            if end is None:
+                                end = user_events.last()
+                            duration = (datetime.fromisoformat(str(end.timestamp))
+                                        - datetime.fromisoformat(str(start.timestamp)))
+                            session_data["data"] = duration.seconds
+                        else:
+                            for axis in axes:
+                                axis_events = user_events.filter(event=axis.event)
+                                if axis.value_policy == "value":
                                     try:
-                                        values_sum += float(value)
+                                        # if there's more than one then we use first
+                                        one_user_event = axis_events.first()
+                                        user_event_value = UserEventProp.objects.get(user_event=one_user_event,
+                                                                                     key=axis.accessor)
+                                    except UserEventProp.DoesNotExist:
+                                        # if we have neither event not value to draw from we stop
+                                        break
+
+                                    try:
+                                        value = float(user_event_value.value)
                                     except TypeError:
-                                        pass
+                                        value = user_event_value.value
 
-                                session_data["data"].append(values_sum / nbr if axis.value_policy == "average"
-                                                            else values_sum)
+                                    session_data["data"].append(value)
 
-                            elif axis.value_policy == "time":
-                                user_event_values = UserEventProp.objects.filter(key=axis.accessor,
-                                                                                 user_event__in=user_events)
-                                try:
-                                    start_timestamp = user_event_values.filter(
-                                        value=axis.start_value).get().user_event.timestamp
-                                    end_timestamp = user_event_values.filter(
-                                        value=axis.end_value).get().user_event.timestamp
+                                elif axis.value_policy == "count":
+                                    session_data["data"].append(user_events.filter(event=axis.event).count())
+                                elif axis.value_policy == "average" or axis.value_policy == "sum":
+                                    nbr = user_events.filter(event=axis.event).count()
+                                    values_sum = 0
+                                    user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
+                                                                                      user_event__in=axis_events).
+                                                         values_list("value", flat=True))
 
-                                    duration = (datetime.fromisoformat(end_timestamp)
-                                                - datetime.fromisoformat(start_timestamp))
+                                    for value in user_event_values:
+                                        try:
+                                            values_sum += float(value)
+                                        except TypeError:
+                                            pass
 
-                                except UserEventProp.DoesNotExist:
-                                    # if we have neither event not value to draw from we stop
-                                    break
+                                    session_data["data"].append(values_sum / nbr if axis.value_policy == "average"
+                                                                else values_sum)
 
-                                session_data["data"].append(duration.seconds)
+                                elif axis.value_policy == "time":
+                                    user_event_values = UserEventProp.objects.filter(key=axis.accessor,
+                                                                                     user_event__in=axis_events)
+                                    try:
+                                        start_timestamp = user_event_values.filter(
+                                            value=axis.start_value).get().user_event.timestamp
+                                        end_timestamp = user_event_values.filter(
+                                            value=axis.end_value).get().user_event.timestamp
 
-                            elif axis.value_policy == "time-sum":
-                                user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
-                                                                                 user_event__in=user_events)
-                                                     .order_by("user_event__timestamp"))
+                                        duration = (datetime.fromisoformat(end_timestamp)
+                                                    - datetime.fromisoformat(start_timestamp))
 
-                                start_timestamps = (user_event_values.filter(value=axis.start_value)
-                                                    .values_list("user_event__timestamp"))
-                                end_timestamps = (user_event_values.filter(value=axis.end_value)
-                                                  .values_list("user_event__timestamp"))
-                                duration_sum = 0
-                                for (start, end) in zip(start_timestamps, end_timestamps):
-                                    duration = (datetime.fromisoformat(end["user_event__timestamp"])
-                                                - datetime.fromisoformat(start["user_event__timestamp"]))
-                                    duration_sum += duration.seconds
+                                    except UserEventProp.DoesNotExist:
+                                        # if we have neither event not value to draw from we stop
+                                        break
 
-                                session_data["data"].append(duration_sum)
+                                    session_data["data"].append(duration.seconds)
+
+                                elif axis.value_policy == "time-sum":
+                                    user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
+                                                                                      user_event__in=axis_events)
+                                                         .order_by("user_event__timestamp"))
+
+                                    start_timestamps = (user_event_values.filter(value=axis.start_value)
+                                                        .values_list("user_event__timestamp", flat=True))
+                                    end_timestamps = (user_event_values.filter(value=axis.end_value)
+                                                      .values_list("user_event__timestamp", flat=True))
+                                    duration_sum = 0
+                                    for (start, end) in zip(start_timestamps, end_timestamps):
+                                        duration = datetime.fromisoformat(end) - datetime.fromisoformat(start)
+                                        duration_sum += duration.seconds
+
+                                    session_data["data"].append(duration_sum)
 
                         # data is valid if calculated for all axis
-                        if len(session_data["data"]) == len(axes):
+                        if rq.time_between or len(session_data["data"]) == len(axes):
                             users_data.append(session_data)
 
             # here goes aggregations if any

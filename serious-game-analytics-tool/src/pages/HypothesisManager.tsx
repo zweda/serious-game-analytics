@@ -66,6 +66,33 @@ export const HypothesisManager = () => {
     useState<boolean[]>([true, true]);
   const [timeBetweenEnabled, setTimeBetweenEnabled] = useState<boolean>(false);
   const [showTimeBetween, setShowTimeBetween] = useState(false);
+  const [contextEnabled, setContextEnabled] = useState<boolean>(false);
+
+  const resetOptions = () => {
+    setEventKeyOptions([[], []]);
+    setAggregationFunctionDisabled(true);
+    setEventValueDelimitersDisabled([true, true]);
+    setTimeBetweenEnabled(false);
+    setShowTimeBetween(false);
+    setContextEnabled(false);
+
+    setIsEdit(false);
+    setEditId(undefined);
+    form.setFieldsValue({
+      name: undefined,
+      description: undefined,
+      usesContext: undefined,
+      measurement: undefined,
+      contextAccessor: undefined,
+      sessionPolicy: undefined,
+      aggregationPolicy: undefined,
+      aggregationFunction: undefined,
+      visualizationType: undefined,
+      timeBetween: undefined,
+      timeLabel: undefined,
+      events: [],
+    });
+  };
 
   const filterEventKeyOptions = (
     value: string,
@@ -135,8 +162,7 @@ export const HypothesisManager = () => {
       .then((res) => {
         if (res.created) {
           setRQModalOpened(false);
-          setIsEdit(false);
-          setEditId(undefined);
+          resetOptions();
           getHypothesis(appContext.games.active.id).then((res: any) =>
             setHypothesis(res),
           );
@@ -169,6 +195,19 @@ export const HypothesisManager = () => {
             setIsEdit(true);
             setEditId(record.id);
             setShowTimeBetween(record.events.length >= 2);
+            setTimeBetweenEnabled(record.timeBetween);
+            setContextEnabled(record.usesContext);
+            setAggregationFunctionDisabled(record.aggregationPolicy === "user");
+            setEventValueDelimitersDisabled([
+              record.events[0]?.valuePolicy !== "time" ||
+                record.events[0]?.valuePolicy !== "time-sum",
+              record.events[1]?.valuePolicy !== "time" ||
+                record.events[1]?.valuePolicy !== "time-sum",
+            ]);
+            record.events[0]?.id &&
+              filterEventKeyOptions(record.events[0]?.id, 0, "accessor");
+            record.events[1]?.id &&
+              filterEventKeyOptions(record.events[1]?.id, 1, "accessor");
           }}
         >
           {value}
@@ -213,7 +252,7 @@ export const HypothesisManager = () => {
       render: (value: keyof typeof SessionPolicy) => SessionPolicy[value],
     },
     {
-      title: "Aggregation Policy",
+      title: "Grouping Policy",
       dataIndex: "aggregationPolicy",
       key: "aggregationPolicy",
       align: "center",
@@ -318,8 +357,7 @@ export const HypothesisManager = () => {
         }}
         onClick={() => {
           setRQModalOpened(true);
-          setIsEdit(false);
-          setEditId(undefined);
+          resetOptions();
         }}
       >
         <Flex gap={5} align="center">
@@ -347,8 +385,7 @@ export const HypothesisManager = () => {
         centered={true}
         onCancel={() => {
           setRQModalOpened(false);
-          setIsEdit(false);
-          setEditId(undefined);
+          resetOptions();
         }}
       >
         <Form
@@ -433,6 +470,15 @@ export const HypothesisManager = () => {
                   <Form.Item label="Event" key={field.key}>
                     <Flex gap={20}>
                       <Form.Item
+                        name={[field.name, "label"]}
+                        style={{ width: 350, marginBottom: 0 }}
+                      >
+                        <Input
+                          placeholder="Event label"
+                          disabled={timeBetweenEnabled}
+                        />
+                      </Form.Item>
+                      <Form.Item
                         name={[field.name, "event"]}
                         style={{ width: 250, marginBottom: 0 }}
                       >
@@ -447,25 +493,6 @@ export const HypothesisManager = () => {
                             label: e.name,
                             value: e.id,
                           }))}
-                        />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, "accessor"]}
-                        style={{ width: 350, marginBottom: 0 }}
-                      >
-                        <Select
-                          placeholder="Event data key"
-                          options={eventKeyOptions[field.name]}
-                          disabled={timeBetweenEnabled}
-                        />
-                      </Form.Item>
-                      <Form.Item
-                        name={[field.name, "label"]}
-                        style={{ width: 350, marginBottom: 0 }}
-                      >
-                        <Input
-                          placeholder="Event label"
-                          disabled={timeBetweenEnabled}
                         />
                       </Form.Item>
                       <Form.Item
@@ -491,6 +518,16 @@ export const HypothesisManager = () => {
                             </Select.Option>
                           ))}
                         </Select>
+                      </Form.Item>
+                      <Form.Item
+                        name={[field.name, "accessor"]}
+                        style={{ width: 350, marginBottom: 0 }}
+                      >
+                        <Select
+                          placeholder="Event data key"
+                          options={eventKeyOptions[field.name]}
+                          disabled={timeBetweenEnabled}
+                        />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "startValue"]}
@@ -551,14 +588,16 @@ export const HypothesisManager = () => {
             valuePropName="checked"
             style={{ marginTop: 20 }}
           >
-            <Checkbox>Use Context</Checkbox>
+            <Checkbox onChange={(e) => setContextEnabled(e.target.checked)}>
+              Use Context
+            </Checkbox>
           </Form.Item>
           <Form.Item
             label="Context Key"
             name="contextAccessor"
             style={{ maxWidth: 400 }}
           >
-            <Input />
+            <Input disabled={!contextEnabled} />
           </Form.Item>
           <Divider />
           <Flex
@@ -576,7 +615,7 @@ export const HypothesisManager = () => {
           </Flex>
           <Flex align="center" gap={20}>
             <Form.Item
-              label="Aggregation Policy"
+              label="Grouping Policy"
               name="aggregationPolicy"
               style={{ minWidth: 400 }}
             >

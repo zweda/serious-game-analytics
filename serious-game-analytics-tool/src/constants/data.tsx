@@ -143,9 +143,9 @@ export const eventTableColumns: ColumnType<any>[] = [
 
 export const ValuePolicies = {
   value: "Use value directly from accessor",
-  sum: "Sum of values of an accessor in a session",
   count: "Number of event occurrences in a session",
-  "count-values": "Number of values of an accessor in a session",
+  sum: "Sum of values of an accessor in a session",
+  average: "Average of values of an accessor in a session",
   time: "Get elapsed time between start and end value of this event.",
   "time-sum":
     "Get sum of elapsed times between start and end value in a session ",

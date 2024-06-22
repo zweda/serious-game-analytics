@@ -85,6 +85,7 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
             </p>
             {d.visualization == "scalar" ? (
               <Card
+                title={d.labels[0] || null}
                 style={{
                   marginTop: 20,
                   width: "fit-content",
