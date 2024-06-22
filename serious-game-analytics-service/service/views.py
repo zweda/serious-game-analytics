@@ -209,7 +209,11 @@ class AnalyticsView(APIView):
                                     # if we have neither event not value to draw from we stop
                                     break
 
-                                value = user_event_value.value
+                                try:
+                                    value = float(user_event_value.value)
+                                except TypeError:
+                                    value = user_event_value.value
+
                                 session_data["data"].append(value)
 
                             elif axis.value_policy == "count":

@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="gitignore clearly not vorking">
+    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="more advances in creating graph data, still need aggregation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/service/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/main.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/main.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -113,7 +111,7 @@
       <workItem from="1718801462410" duration="5007000" />
       <workItem from="1718991691930" duration="595000" />
       <workItem from="1719000124463" duration="594000" />
-      <workItem from="1719007816025" duration="8129000" />
+      <workItem from="1719007816025" duration="8275000" />
     </task>
     <task id="LOCAL-00001" summary="more changes">
       <option name="closed" value="true" />
@@ -155,7 +153,15 @@
       <option name="project" value="LOCAL" />
       <updated>1718763419583</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="more advances in creating graph data, still need aggregation">
+      <option name="closed" value="true" />
+      <created>1719027206855</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1719027206855</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -176,6 +182,7 @@
     <MESSAGE value="no sql" />
     <MESSAGE value="more changes" />
     <MESSAGE value="gitignore clearly not vorking" />
-    <option name="LAST_COMMIT_MESSAGE" value="gitignore clearly not vorking" />
+    <MESSAGE value="more advances in creating graph data, still need aggregation" />
+    <option name="LAST_COMMIT_MESSAGE" value="more advances in creating graph data, still need aggregation" />
   </component>
 </project>
