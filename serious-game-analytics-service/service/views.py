@@ -3,7 +3,6 @@ from collections import namedtuple
 from csv import DictReader
 from datetime import datetime
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, F
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
@@ -276,7 +275,7 @@ class AnalyticsView(APIView):
             # here goes aggregations if any
             user_groups = []
             if rq.aggregation_policy == "globally":
-                user_groups = ["global"]
+                pass
 
             # parse data if needed depending on visualization
             result_dic["data"] = users_data

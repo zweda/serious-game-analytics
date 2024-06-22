@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="more advances in creating graph data, still need aggregation">
+    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="try to cast to numeric if the value is numeric">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/service/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/views.py" afterDir="false" />
     </list>
@@ -111,7 +111,7 @@
       <workItem from="1718801462410" duration="5007000" />
       <workItem from="1718991691930" duration="595000" />
       <workItem from="1719000124463" duration="594000" />
-      <workItem from="1719007816025" duration="8275000" />
+      <workItem from="1719007816025" duration="8622000" />
     </task>
     <task id="LOCAL-00001" summary="more changes">
       <option name="closed" value="true" />
@@ -161,7 +161,15 @@
       <option name="project" value="LOCAL" />
       <updated>1719027206855</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="try to cast to numeric if the value is numeric">
+      <option name="closed" value="true" />
+      <created>1719027431237</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1719027431237</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -183,6 +191,7 @@
     <MESSAGE value="more changes" />
     <MESSAGE value="gitignore clearly not vorking" />
     <MESSAGE value="more advances in creating graph data, still need aggregation" />
-    <option name="LAST_COMMIT_MESSAGE" value="more advances in creating graph data, still need aggregation" />
+    <MESSAGE value="try to cast to numeric if the value is numeric" />
+    <option name="LAST_COMMIT_MESSAGE" value="try to cast to numeric if the value is numeric" />
   </component>
 </project>
