@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="try to cast to numeric if the value is numeric">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/service/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/constants/data.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/constants/data.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/Analytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/Analytics.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx" afterDir="false" />
-    </list>
+    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="add time between rearrage form" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -114,7 +108,7 @@
       <workItem from="1718801462410" duration="5007000" />
       <workItem from="1718991691930" duration="595000" />
       <workItem from="1719000124463" duration="594000" />
-      <workItem from="1719007816025" duration="10304000" />
+      <workItem from="1719007816025" duration="10743000" />
     </task>
     <task id="LOCAL-00001" summary="more changes">
       <option name="closed" value="true" />
@@ -180,7 +174,15 @@
       <option name="project" value="LOCAL" />
       <updated>1719027633675</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="add time between rearrage form">
+      <option name="closed" value="true" />
+      <created>1719029331143</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1719029331143</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -203,6 +205,7 @@
     <MESSAGE value="gitignore clearly not vorking" />
     <MESSAGE value="more advances in creating graph data, still need aggregation" />
     <MESSAGE value="try to cast to numeric if the value is numeric" />
-    <option name="LAST_COMMIT_MESSAGE" value="try to cast to numeric if the value is numeric" />
+    <MESSAGE value="add time between rearrage form" />
+    <option name="LAST_COMMIT_MESSAGE" value="add time between rearrage form" />
   </component>
 </project>
