@@ -1,6 +1,7 @@
 import csv
 from collections import namedtuple
 from csv import DictReader
+from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, F
@@ -124,7 +125,10 @@ class AnalyticsView(APIView):
             result_dic = {
                 "question": rq.name,
                 "description": rq.description,
-                "visualization": rq.visualization_type
+                "visualization": rq.visualization_type,
+                "contexts": [],
+                "labels": [],
+                "data": [],
             }
 
             axes = EventGroup.objects.filter(research_question=rq)
@@ -139,86 +143,142 @@ class AnalyticsView(APIView):
             result_dic["labels"] = labels
 
             # context values for drop down and keyed data
+            contexts = [None]
             if rq.uses_context:
                 context_key = rq.context_accessor
                 context_values = []
                 context_event = Event.objects.get(name="context-changed")
-                ctxs = UserEvent.objects.filter(event=context_event)
+                ctxs = UserEvent.objects.filter(event=context_event).order_by("timestamp")
+                prev_ctx_idx = -1
                 for ctx in ctxs:
                     ctxs_props = UserEventProp.objects.filter(user_event=ctx, key=context_key)
                     for prop in ctxs_props:
-                        if prop.value not in context_values:
-                            context_values.append(prop.value)
+                        if prop.value not in [item["value"] for item in context_values]:
+                            # update previous with current timestamp
+                            if prev_ctx_idx >= 0:
+                                context_values[prev_ctx_idx] = ctx.timestamp
+                            ctx_value = {
+                                "id": ctx.id,
+                                "started": ctx.timestamp,
+                                "ended": None,
+                                "value": prop.value
+                            }
+                            context_values.append(ctx_value)
+                            prev_ctx_idx += 1
 
-                result_dic["context_values"] = context_values
+                contexts = context_values
+                result_dic["contexts"] = contexts
 
-            if rq.aggregation_policy == "user":
-                users = User.objects.filter(game=game)
-                users_data = []
+            users = User.objects.filter(game=game)
+            users_data = []
+            for ctx in contexts:
                 for user in users:
+                    sessions = []
                     if rq.session_policy == "first":
-                        user_data = []
-                        user_events = UserEvent.objects.filter(session_id=user.first_session_id, user=user)
+                        sessions = [user.first_session_id]
+                    elif rq.session_policy == "each":
+                        sessions = UserEvent.objects.filter(user=user).values_list("session_id", flat=True).distinct()
 
-                        if rq.time_between:
-                            pass
+                    for session_id in sessions:
+                        session_data = {
+                            "user": {
+                                "id": user.id,
+                                "region": user.region,
+                                "gender": user.gender,
+                                "age": user.age,
+                            },
+                            "data": [],
+                            "context": ctx,
+                        }
+
+                        user_events = UserEvent.objects.filter(session_id=session_id, user=user).order_by("timestamp")
+                        if ctx is not None:
+                            user_events = user_events.filter(timestamp__gte=ctx["started"])
+                            if ctx["ended"] is not None:
+                                user_events = user_events.filter(timestamp__lte=ctx["ended"])
 
                         for axis in axes:
+                            axis_events = user_events.filter(event=axis.event)
                             if axis.value_policy == "value":
                                 try:
                                     # if there's more than one then we use first
-                                    one_user_event = user_events.filter(event=axis.event).first()
-                                    user_event_props = UserEventProp.objects.get(user_event=one_user_event,
+                                    one_user_event = axis_events.first()
+                                    user_event_value = UserEventProp.objects.get(user_event=one_user_event,
                                                                                  key=axis.accessor)
-                                except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
+                                except UserEventProp.DoesNotExist:
                                     # if we have neither event not value to draw from we stop
                                     break
 
-                                value = user_event_props.value
-                                # we want to enforce int values for scatter and line
-                                if rq.visualization_type == "scatter" or rq.visualization_type == "line":
-                                    try:
-                                        value = int(value)
-                                    except ValueError:
-                                        break
+                                value = user_event_value.value
+                                session_data["data"].append(value)
 
-                                user_data.append(value)
                             elif axis.value_policy == "count":
-                                user_data.append(user_events.filter(event=axis.event).count())
+                                session_data["data"].append(user_events.filter(event=axis.event).count())
+                            elif axis.value_policy == "average" or axis.value_policy == "sum":
+                                nbr = user_events.filter(event=axis.event).count()
+                                values_sum = 0
+                                user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
+                                                                                  user_event__in=user_events).
+                                                     values_list("value", flat=True))
 
-                        users_data.append(user_data)
-                    elif rq.session_policy == "each":
-                        sessions = UserEvent.objects.get(user=user).values_list("session_id", flat=True)
-                        for session_id in sessions:
-                            session_data = []
-                            user_events = UserEvent.objects.filter(session_id=session_id, user=user)
-                            for axis in axes:
-                                if axis.value_policy == "value":
+                                for value in user_event_values:
                                     try:
-                                        # if there's more than one then we use first
-                                        one_user_event = user_events.filter(event=axis.event).first()
-                                        user_event_props = UserEventProp.objects.get(user_event=one_user_event,
-                                                                                     key=axis.accessor)
-                                    except (UserEvent.DoesNotExist, UserEventProp.DoesNotExist):
-                                        # if we have neither event not value to draw from we stop
-                                        break
+                                        values_sum += float(value)
+                                    except TypeError:
+                                        pass
 
-                                    value = user_event_props.value
-                                    # we want to enforce int values for scatter and line
-                                    if rq.visualization_type == "scatter" or rq.visualization_type == "line":
-                                        try:
-                                            value = int(value)
-                                        except ValueError:
-                                            break
+                                session_data["data"].append(values_sum / nbr if axis.value_policy == "average"
+                                                            else values_sum)
 
-                                    session_data.append(value)
-                                elif axis.value_policy == "count":
-                                    session_data.append(user_events.filter(event=axis.event).count())
+                            elif axis.value_policy == "time":
+                                user_event_values = UserEventProp.objects.filter(key=axis.accessor,
+                                                                                 user_event__in=user_events)
+                                try:
+                                    start_timestamp = user_event_values.filter(
+                                        value=axis.start_value).get().user_event.timestamp
+                                    end_timestamp = user_event_values.filter(
+                                        value=axis.end_value).get().user_event.timestamp
 
+                                    duration = (datetime.fromisoformat(end_timestamp)
+                                                - datetime.fromisoformat(start_timestamp))
+
+                                except UserEventProp.DoesNotExist:
+                                    # if we have neither event not value to draw from we stop
+                                    break
+
+                                session_data["data"].append(duration.seconds)
+
+                            elif axis.value_policy == "time-sum":
+                                user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
+                                                                                 user_event__in=user_events)
+                                                     .order_by("user_event__timestamp"))
+
+                                start_timestamps = (user_event_values.filter(value=axis.start_value)
+                                                    .values_list("user_event__timestamp"))
+                                end_timestamps = (user_event_values.filter(value=axis.end_value)
+                                                  .values_list("user_event__timestamp"))
+                                duration_sum = 0
+                                for (start, end) in zip(start_timestamps, end_timestamps):
+                                    duration = (datetime.fromisoformat(end["user_event__timestamp"])
+                                                - datetime.fromisoformat(start["user_event__timestamp"]))
+                                    duration_sum += duration.seconds
+
+                                session_data["data"].append(duration_sum)
+
+                        # data is valid if calculated for all axis
+                        if len(session_data["data"]) == len(axes):
                             users_data.append(session_data)
-                result_dic["data"] = users_data
+
+            # here goes aggregations if any
+            user_groups = []
+            if rq.aggregation_policy == "globally":
+                user_groups = ["global"]
+
+            # parse data if needed depending on visualization
+            result_dic["data"] = users_data
 
             result.append(result_dic)
+            print(result)
         return JsonResponse({"results": result}, status=status.HTTP_200_OK)
 
 
