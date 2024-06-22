@@ -1,15 +1,20 @@
 import { FC, useContext, useEffect, useMemo, useState } from "react";
 import { getAnalytics } from "../api/get-data.ts";
 import { AppContext } from "../App.tsx";
-import { Card, Flex, message, theme } from "antd";
-import { ExperimentFilled } from "@ant-design/icons";
+import { Card, Flex, message, Select, theme } from "antd";
+import { ExperimentFilled, LoadingOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import EChartsReact from "echarts-for-react";
 import { getEChartsOptionsFromData } from "../utils";
 import { contentHeight } from "../constants";
+import { Genders } from "../constants/data.tsx";
 
 export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
-  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [hypothesis, setHypothesis] = useState<any[]>([]);
+  const [dataFilters, setDataFilters] = useState<
+    { context: string; group: string }[]
+  >([]);
   const { appContext } = useContext(AppContext);
 
   const {
@@ -23,13 +28,56 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
     },
   } = theme.useToken();
 
+  const changeDataFilter = (
+    dataIndex: number,
+    filter: "context" | "group",
+    value: string,
+  ) => {
+    setDataFilters((prev) => {
+      const newFilters = structuredClone(prev);
+      if (!newFilters[dataIndex])
+        newFilters[dataIndex] = {
+          context: "",
+          group: "",
+          [filter]: value,
+        };
+      else newFilters[dataIndex][filter] = value;
+      return newFilters;
+    });
+  };
+
+  const filteredData = (data: any[], dataIndex: number, groupName?: string) => {
+    const filter = dataFilters[dataIndex];
+    if (!filter) return data;
+
+    return data.filter((d: any) => {
+      let leave = true;
+      if (filter.context && d.context !== filter.context) leave = false;
+      if (filter.group && groupName && d.user[groupName] !== filter.group)
+        leave = false;
+      return leave;
+    });
+  };
+
   useEffect(() => {
+    setLoading(true);
     getAnalytics(appContext.games.active.code, analytics)
-      .then((res: any) => setData(res))
-      .catch(() => message.error(`Unable to get ${analytics} analytics`));
+      .then((res: any[]) => {
+        res.forEach((d: any, idx) => {
+          if (d.contexts)
+            changeDataFilter(idx, "context", d.contexts.values[0]);
+          if (d.groups) changeDataFilter(idx, "group", d.groups.values[0]);
+        });
+        setHypothesis(res);
+        setLoading(false);
+      })
+      .catch(() => {
+        message.error(`Unable to get ${analytics} analytics`);
+        setLoading(false);
+      });
   }, [analytics, appContext.games.active.code]);
 
-  const noData = useMemo(() => data.length === 0, [data]);
+  const noData = useMemo(() => hypothesis.length === 0, [hypothesis]);
   const containerStyle = useMemo(
     () => ({
       height: contentHeight,
@@ -51,7 +99,7 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
       vertical
       gap={noData ? 10 : 50}
     >
-      {noData ? (
+      {noData && !loading && (
         <>
           <Flex gap={10}>
             <ExperimentFilled />
@@ -76,38 +124,86 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
             and map adequate events to support <b>{analytics}</b> analytics.
           </p>
         </>
-      ) : (
-        data.map((d: any, idx) => (
+      )}
+      {loading && <LoadingOutlined style={{ fontSize: 50 }} />}
+      {!noData &&
+        !loading &&
+        hypothesis.map((d: any, idx) => (
           <Flex vertical gap={10} key={idx}>
             <h2 style={{ color: colorTextHeading }}>{d.question}</h2>
             <p style={{ color: colorTextDescription, maxWidth: 500 }}>
               {d.description}
             </p>
+            {(d.contexts || d.groups) && (
+              <Flex gap={20}>
+                {d.contexts && (
+                  <Flex gap={10} align="center">
+                    <b>{d.contexts.name}:</b>
+                    <Select
+                      value={dataFilters[idx]?.context}
+                      onChange={(value) =>
+                        changeDataFilter(idx, "context", value)
+                      }
+                      options={d.contexts.values.map((op: string) => ({
+                        label: op,
+                        value: op,
+                      }))}
+                    />
+                  </Flex>
+                )}
+                {d.groups && (
+                  <Flex gap={10} align="center">
+                    <b>{d.groups.name}:</b>
+                    <Select
+                      style={{ width: "max-content" }}
+                      value={dataFilters[idx]?.group}
+                      onChange={(value) =>
+                        changeDataFilter(idx, "group", value)
+                      }
+                      options={d.groups.values.map((op: string) => ({
+                        label:
+                          d.groups.name === "gender"
+                            ? Genders[op as keyof typeof Genders]
+                            : op,
+                        value: op,
+                      }))}
+                    />
+                  </Flex>
+                )}
+              </Flex>
+            )}
             {d.visualization == "scalar" ? (
-              <Card
-                title={d.labels[0] || null}
-                style={{
-                  marginTop: 20,
-                  width: "fit-content",
-                  fontSize: 35,
-                  alignSelf: "center",
-                }}
-              >
-                {d.data}
-              </Card>
+              (filteredData(d.data, idx, d.groups?.name) as any[]).map(
+                (record: any, innerIdx) => (
+                  <Card
+                    key={innerIdx}
+                    title={d.labels[0] || null}
+                    style={{
+                      marginTop: 20,
+                      width: "fit-content",
+                      fontSize: 35,
+                      alignSelf: "center",
+                      textAlign: "center",
+                    }}
+                  >
+                    {record.data[0]}
+                  </Card>
+                ),
+              )
             ) : (
               <EChartsReact
                 style={{ width: 600, height: 400 }}
                 option={getEChartsOptionsFromData(
                   d.visualization,
                   d.labels,
-                  d.data,
+                  filteredData(d.data, idx, d.groups?.name).map(
+                    (x: any) => x.data,
+                  ),
                 )}
               />
             )}
           </Flex>
-        ))
-      )}
+        ))}
     </Flex>
   );
 };

@@ -1,3 +1,4 @@
+import copy
 import csv
 from collections import namedtuple
 from csv import DictReader
@@ -125,7 +126,8 @@ class AnalyticsView(APIView):
                 "question": rq.name,
                 "description": rq.description,
                 "visualization": rq.visualization_type,
-                "contexts": [],
+                "contexts": None,
+                "groups": None,
                 "labels": [],
                 "data": [],
             }
@@ -166,7 +168,10 @@ class AnalyticsView(APIView):
                             prev_ctx_idx += 1
 
                 contexts = context_values
-                result_dic["contexts"] = contexts
+                result_dic["contexts"] = {
+                    "name": context_key,
+                    "values": [c["value"] for c in contexts]
+                }
 
             users = User.objects.filter(game=game)
             users_data = []
@@ -285,14 +290,90 @@ class AnalyticsView(APIView):
 
             # here goes aggregations if any
             user_groups = []
-            if rq.aggregation_policy == "globally":
-                pass
+            if rq.aggregation_policy != "user":
+                transformed_data = []
+                for data in users_data:
+                    # preserve context representative
+                    if data["context"] not in [x["context"] for x in transformed_data]:
+                        new_data = copy.deepcopy(data)
+                        new_data["count"] = 0
+                        if isinstance(new_data["data"], list):
+                            new_data["data"] = [0 for _ in axes]
+                        else:
+                            new_data["data"] = 0
+                        transformed_data.append(new_data)
 
-            # parse data if needed depending on visualization
-            result_dic["data"] = users_data
+                    elif rq.aggregation_policy == "globally":
+                        index = next((i for i, x in enumerate(transformed_data) if x["context"] == data["context"]), -1)
+                        if rq.aggregation_function == "count":
+                            if isinstance(transformed_data[index]["data"], list):
+                                transformed_data[index]["data"] = [x + 1 for x in transformed_data[index]["data"]]
+                            else:
+                                transformed_data[index]["data"] += 1
+                        elif rq.aggregation_function == "sum" or rq.aggregation_function == "average":
+                            transformed_data[index]["count"] += 1
+                            if isinstance(transformed_data[index]["data"], list):
+                                transformed_data[index]["data"] = ([x + data["data"][idx]
+                                                                    for idx, x in
+                                                                    enumerate(transformed_data[index]["data"])])
+                            else:
+                                transformed_data[index]["data"] += data["data"]
 
+                    else:
+                        if data["user"][rq.aggregation_policy] not in user_groups:
+                            user_groups.append(data["user"][rq.aggregation_policy])
+                        if (data["user"][rq.aggregation_policy] not in [x["user"][rq.aggregation_policy]
+                                                                        for x in transformed_data if
+                                                                        x["context"] == data["context"]]):
+                            new_data = copy.deepcopy(data)
+                            new_data["count"] = 0
+                            if isinstance(new_data["data"], list):
+                                new_data["data"] = [0 for _ in axes]
+                            else:
+                                new_data["data"] = 0
+                            transformed_data.append(new_data)
+                        else:
+                            index = next((i for i, x in enumerate(transformed_data)
+                                          if x["context"] == data["context"]
+                                          and x["user"][rq.aggregation_policy] == data["user"][rq.aggregation_policy]),
+                                         -1)
+                            if rq.aggregation_function == "count":
+                                if isinstance(transformed_data[index]["data"], list):
+                                    transformed_data[index]["data"] = [x + 1 for x in transformed_data[index]["data"]]
+                                else:
+                                    transformed_data[index]["data"] += 1
+                            elif rq.aggregation_function == "sum" or rq.aggregation_function == "average":
+                                transformed_data[index]["count"] += 1
+                                if isinstance(transformed_data[index]["data"], list):
+                                    transformed_data[index]["data"] = ([x + data["data"][idx]
+                                                                        for idx, x in
+                                                                        enumerate(transformed_data[index]["data"])])
+                                else:
+                                    transformed_data[index]["data"] += data["data"]
+
+                if rq.aggregation_function == "average":
+                    averaged_data = []
+                    for record in transformed_data:
+                        if isinstance(record["data"], list):
+                            record["data"] = [round(x / record["count"], 2) for x in record["data"]]
+                        else:
+                            record["data"] = round(record["data"] / record["count"], 2)
+
+                        averaged_data.append(record)
+                    result_dic["data"] = averaged_data
+                else:
+                    result_dic["data"] = transformed_data
+                result_dic["groups"] = {
+                    "name": rq.aggregation_policy,
+                    "values": user_groups,
+                }
+            else:
+                result_dic["data"] = users_data
+
+            for x in result_dic["data"]:
+                if not isinstance(x["data"], list):
+                    x["data"] = [x["data"]]
             result.append(result_dic)
-            print(result)
         return JsonResponse({"results": result}, status=status.HTTP_200_OK)
 
 

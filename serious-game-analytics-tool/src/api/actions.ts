@@ -47,7 +47,6 @@ export const saveHypothesis = async (
   isEdit?: boolean,
   id?: string,
 ) => {
-  console.log(data);
   const { data: rq, ok } = await httpRequest(
     "research-questions" + (isEdit ? "/" + id : ""),
     isEdit ? "put" : "post",

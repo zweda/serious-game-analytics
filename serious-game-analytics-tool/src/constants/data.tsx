@@ -184,3 +184,8 @@ export const Measurement = {
   gameplay: "Gameplay",
   engagement: "Engagement",
 };
+
+export const Genders = {
+  m: "male",
+  f: "female",
+};

@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="add time between rearrage form" />
+    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="add time between rearrage form">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service/middleware.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/middleware.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/service/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/views.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -109,6 +114,7 @@
       <workItem from="1718991691930" duration="595000" />
       <workItem from="1719000124463" duration="594000" />
       <workItem from="1719007816025" duration="10743000" />
+      <workItem from="1719068867331" duration="11816000" />
     </task>
     <task id="LOCAL-00001" summary="more changes">
       <option name="closed" value="true" />
