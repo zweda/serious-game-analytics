@@ -31,3 +31,9 @@ export const groupAges = (ageCounts: any[]) => {
     count: (ageRanges as any)[range],
   }));
 };
+
+export const padArray = (arr: any[], desiredLength: number) => {
+  return Array.from({ length: desiredLength }, (_: any, i) =>
+    arr[i] !== undefined ? arr[i] : 0,
+  );
+};

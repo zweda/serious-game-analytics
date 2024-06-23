@@ -43,6 +43,12 @@ export const HypothesisManager = () => {
   const [events, setEvents] = useState<
     { name: string; id: string; fields: string[] }[]
   >([]);
+  const [contextEventFields, setContextEventFields] = useState<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
   const { appContext } = useContext(AppContext);
   const {
     token: { colorBgContainer, borderRadiusLG, colorTextDescription },
@@ -98,6 +104,7 @@ export const HypothesisManager = () => {
     value: string,
     field: number,
     name: string,
+    trigger: boolean = true,
   ) => {
     setEventKeyOptions((prev) => {
       const list = structuredClone(prev);
@@ -112,20 +119,28 @@ export const HypothesisManager = () => {
       return list;
     });
 
-    form.setFieldValue(["events", field, name], undefined);
+    trigger && form.setFieldValue(["events", field, name], undefined);
   };
 
   useEffect(() => {
     getHypothesis(appContext.games.active.id)
       .then((res: any) => setHypothesis(res))
       .catch(() => message.error(`Unable to get game events`));
-    getEvents(appContext.games.active.id).then((res: any) =>
+    getEvents(appContext.games.active.id).then((res: any) => {
       setEvents(
         res
           .filter((ev: any) => !ev.reserved)
           .map((ev: any) => ({ id: ev.id, name: ev.name, fields: ev.fields })),
-      ),
-    );
+      );
+      setContextEventFields(
+        res
+          .find((ev: any) => ev.name === "context-changed")
+          .fields.map((f: string) => ({
+            label: f,
+            value: f,
+          })),
+      );
+    });
   }, [appContext.games.active.id]);
 
   const handleSaveResearchQuestion = (data: any) => {
@@ -204,10 +219,21 @@ export const HypothesisManager = () => {
               record.events[1]?.valuePolicy !== "time" ||
                 record.events[1]?.valuePolicy !== "time-sum",
             ]);
-            record.events[0]?.id &&
-              filterEventKeyOptions(record.events[0]?.id, 0, "accessor");
-            record.events[1]?.id &&
-              filterEventKeyOptions(record.events[1]?.id, 1, "accessor");
+
+            record.events[0]?.event &&
+              filterEventKeyOptions(
+                record.events[0]?.event,
+                0,
+                "accessor",
+                false,
+              );
+            record.events[1]?.event &&
+              filterEventKeyOptions(
+                record.events[1]?.event,
+                1,
+                "accessor",
+                false,
+              );
           }}
         >
           {value}
@@ -321,6 +347,12 @@ export const HypothesisManager = () => {
           >
             <CheckCircleOutlined style={{ color: "green" }} />
             <span>Only time between these events is calculated</span>
+            {record.timeLabel && (
+              <span>
+                (label{": "}
+                <b>{record.timeLabel}</b>)
+              </span>
+            )}
           </Flex>
         )}
         <Table
@@ -597,7 +629,7 @@ export const HypothesisManager = () => {
             name="contextAccessor"
             style={{ maxWidth: 400 }}
           >
-            <Input disabled={!contextEnabled} />
+            <Select disabled={!contextEnabled} options={contextEventFields} />
           </Form.Item>
           <Divider />
           <Flex

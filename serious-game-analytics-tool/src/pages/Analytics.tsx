@@ -1,4 +1,4 @@
-import { FC, useContext, useEffect, useMemo, useState } from "react";
+import { FC, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getAnalytics } from "../api/get-data.ts";
 import { AppContext } from "../App.tsx";
 import { Card, Flex, message, Select, theme } from "antd";
@@ -16,6 +16,7 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
     { context: string; group: string }[]
   >([]);
   const { appContext } = useContext(AppContext);
+  const eChartRefs = useRef<EChartsReact[]>([]);
 
   const {
     token: {
@@ -50,9 +51,12 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
     const filter = dataFilters[dataIndex];
     if (!filter) return data;
 
+    if (eChartRefs.current[dataIndex])
+      eChartRefs.current[dataIndex].getEchartsInstance().dispose();
+
     return data.filter((d: any) => {
       let leave = true;
-      if (filter.context && d.context !== filter.context) leave = false;
+      if (filter.context && d.context.value !== filter.context) leave = false;
       if (filter.group && groupName && d.user[groupName] !== filter.group)
         leave = false;
       return leave;
@@ -192,13 +196,12 @@ export const Analytics: FC<{ analytics: string }> = ({ analytics }) => {
               )
             ) : (
               <EChartsReact
-                style={{ width: 600, height: 400 }}
+                ref={(el) => (eChartRefs.current[idx] = el as EChartsReact)}
+                style={{ width: 700, height: 450 }}
                 option={getEChartsOptionsFromData(
                   d.visualization,
                   d.labels,
-                  filteredData(d.data, idx, d.groups?.name).map(
-                    (x: any) => x.data,
-                  ),
+                  filteredData(d.data, idx, d.groups?.name),
                 )}
               />
             )}

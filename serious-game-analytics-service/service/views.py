@@ -2,9 +2,8 @@ import copy
 import csv
 from collections import namedtuple
 from csv import DictReader
-from datetime import datetime
 
-from django.db.models import Count, F
+from django.db.models import Count
 from django.http import JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status
@@ -150,22 +149,16 @@ class AnalyticsView(APIView):
                 context_values = []
                 context_event = Event.objects.get(name="context-changed")
                 ctxs = UserEvent.objects.filter(event=context_event).order_by("timestamp")
-                prev_ctx_idx = -1
                 for ctx in ctxs:
                     ctxs_props = UserEventProp.objects.filter(user_event=ctx, key=context_key)
                     for prop in ctxs_props:
                         if prop.value not in [item["value"] for item in context_values]:
                             # update previous with current timestamp
-                            if prev_ctx_idx >= 0:
-                                context_values[prev_ctx_idx] = ctx.timestamp
                             ctx_value = {
-                                "id": ctx.id,
-                                "started": ctx.timestamp,
-                                "ended": None,
+                                "id": ctx.event_id,
                                 "value": prop.value
                             }
                             context_values.append(ctx_value)
-                            prev_ctx_idx += 1
 
                 contexts = context_values
                 result_dic["contexts"] = {
@@ -197,9 +190,23 @@ class AnalyticsView(APIView):
 
                         user_events = UserEvent.objects.filter(session_id=session_id, user=user).order_by("timestamp")
                         if ctx is not None:
-                            user_events = user_events.filter(timestamp__gte=ctx["started"])
-                            if ctx["ended"] is not None:
-                                user_events = user_events.filter(timestamp__lte=ctx["ended"])
+                            ctx_started = UserEventProp.objects.filter(
+                                user_event__in=user_events.filter(event__id=ctx["id"]),
+                                key=rq.context_accessor,
+                                value=ctx["value"]
+                            ).order_by("user_event__timestamp").first()
+
+                            if ctx_started:
+                                ctx_ended = UserEventProp.objects.filter(
+                                    user_event__in=user_events.filter(event__id=ctx["id"]),
+                                    user_event__timestamp__gt=ctx_started.user_event.timestamp,
+                                    key=rq.context_accessor,
+                                ).exclude(value=ctx["value"]).order_by("user_event__timestamp").first()
+                                user_events = user_events.filter(timestamp__gte=ctx_started.user_event.timestamp)
+                                if ctx_ended is not None:
+                                    user_events = user_events.filter(timestamp__lte=ctx_ended.user_event.timestamp)
+                            else:
+                                user_events = UserEvent.objects.none()
 
                         if rq.time_between:
                             event_ids = axes[:2].values_list("event", flat=True)
@@ -209,8 +216,7 @@ class AnalyticsView(APIView):
                             end = user_events.filter(event_id=event_ids[1]).first()
                             if end is None:
                                 end = user_events.last()
-                            duration = (datetime.fromisoformat(str(end.timestamp))
-                                        - datetime.fromisoformat(str(start.timestamp)))
+                            duration = end.timestamp - start.timestamp
                             session_data["data"] = duration.seconds
                         else:
                             for axis in axes:
@@ -251,18 +257,18 @@ class AnalyticsView(APIView):
                                                                 else values_sum)
 
                                 elif axis.value_policy == "time":
-                                    user_event_values = UserEventProp.objects.filter(key=axis.accessor,
-                                                                                     user_event__in=axis_events)
+                                    user_event_values = (UserEventProp.objects.filter(key=axis.accessor,
+                                                                                      user_event__in=axis_events)
+                                                         .order_by("user_event__timestamp"))
                                     try:
                                         start_timestamp = user_event_values.filter(
-                                            value=axis.start_value).get().user_event.timestamp
+                                            value=axis.start_value).first().user_event.timestamp
                                         end_timestamp = user_event_values.filter(
-                                            value=axis.end_value).get().user_event.timestamp
+                                            value=axis.end_value).first().user_event.timestamp
 
-                                        duration = (datetime.fromisoformat(end_timestamp)
-                                                    - datetime.fromisoformat(start_timestamp))
+                                        duration = end_timestamp - start_timestamp
 
-                                    except UserEventProp.DoesNotExist:
+                                    except (UserEventProp.DoesNotExist, AttributeError):
                                         # if we have neither event not value to draw from we stop
                                         break
 
@@ -279,7 +285,7 @@ class AnalyticsView(APIView):
                                                       .values_list("user_event__timestamp", flat=True))
                                     duration_sum = 0
                                     for (start, end) in zip(start_timestamps, end_timestamps):
-                                        duration = datetime.fromisoformat(end) - datetime.fromisoformat(start)
+                                        duration = end - start
                                         duration_sum += duration.seconds
 
                                     session_data["data"].append(duration_sum)

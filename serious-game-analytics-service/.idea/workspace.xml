@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="add time between rearrage form">
+    <list default="true" id="edc24714-37da-4f7b-8356-9eb6516f0ce9" name="Changes" comment="cover all cases for getting analytics. add dropdowns for data groups and contexts">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/service/middleware.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/middleware.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/service/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/service/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/Analytics.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/Analytics.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/pages/HypothesisManager.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../serious-game-analytics-tool/src/utils/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../serious-game-analytics-tool/src/utils/index.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +116,7 @@
       <workItem from="1718991691930" duration="595000" />
       <workItem from="1719000124463" duration="594000" />
       <workItem from="1719007816025" duration="10743000" />
-      <workItem from="1719068867331" duration="11816000" />
+      <workItem from="1719068867331" duration="17825000" />
     </task>
     <task id="LOCAL-00001" summary="more changes">
       <option name="closed" value="true" />
@@ -188,7 +190,15 @@
       <option name="project" value="LOCAL" />
       <updated>1719029331143</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="cover all cases for getting analytics. add dropdowns for data groups and contexts">
+      <option name="closed" value="true" />
+      <created>1719087721867</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1719087721867</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -212,6 +222,7 @@
     <MESSAGE value="more advances in creating graph data, still need aggregation" />
     <MESSAGE value="try to cast to numeric if the value is numeric" />
     <MESSAGE value="add time between rearrage form" />
-    <option name="LAST_COMMIT_MESSAGE" value="add time between rearrage form" />
+    <MESSAGE value="cover all cases for getting analytics. add dropdowns for data groups and contexts" />
+    <option name="LAST_COMMIT_MESSAGE" value="cover all cases for getting analytics. add dropdowns for data groups and contexts" />
   </component>
 </project>

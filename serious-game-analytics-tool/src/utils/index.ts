@@ -52,54 +52,105 @@ export const getEChartsOptionsFromData = (
   type: keyof typeof Visualizations,
   labels: any[],
   data: any,
+  maxNumberOfSeries = 5,
 ) => {
-  const options: Omit<EChartsOption, "series"> = {
+  const options: EChartsOption = {
     xAxis: {},
     yAxis: {},
-    tooltip: {
+    tooltip: {},
+    series: [],
+  };
+
+  if (type === "scatter") {
+    options.tooltip = {
       trigger: "item",
       formatter: (params: any) =>
         `${labels[0]}: ${params.data[0]}<br/>${labels[1]}: ${params.data[1]}`,
-    },
-    series: [
+    };
+
+    options.xAxis = {
+      name: labels[0],
+      nameLocation: "middle",
+      nameGap: 30,
+      nameTextStyle: {
+        fontWeight: "bold",
+      },
+    };
+    options.yAxis = {
+      name: labels[1],
+      nameRotate: 90,
+      nameLocation: "middle",
+      nameGap: 30,
+      nameTextStyle: {
+        fontWeight: "bold",
+      },
+    };
+
+    options.series = [
       {
         symbolSize: 15,
-        data: data,
+        data: data.map((d: any) => d.data),
         type,
       },
-    ],
-  };
+    ];
+  }
 
-  switch (type) {
-    case "scatter":
-      options.xAxis = {
-        name: labels[0],
-        nameLocation: "middle",
-        nameGap: 30,
-        nameTextStyle: {
-          fontWeight: "bold",
-        },
-      };
-      options.yAxis = {
-        name: labels[1],
-        nameRotate: 90,
-        nameLocation: "middle",
-        nameGap: 30,
-        nameTextStyle: {
-          fontWeight: "bold",
-        },
-      };
-      break;
-    case "bar":
-      break;
-    case "line":
-      break;
-    case "pie":
-      break;
-    case "scalar":
-      return null;
-    default:
-      return null;
+  if (type === "bar") {
+    const usersSessionsCount = data
+      .map((d: any) => d.user.id)
+      .reduce((accumulator: any, currentValue: number) => {
+        accumulator[currentValue] = (accumulator[currentValue] || 0) + 1;
+        return accumulator;
+      }, {});
+
+    const source: any[] = [];
+    Object.keys(usersSessionsCount).forEach((id: string, idx) => {
+      const row = ["User " + (idx + 1)];
+      row.push(
+        ...data.filter((d: any) => d.user.id === id).map((d: any) => d.data[0]),
+      );
+      source.push(row);
+    });
+
+    const sortedSource = source.sort(
+      (row1: any[], row2: any[]) => row2.length - row1.length,
+    );
+
+    options.dataset = {
+      source: sortedSource,
+    };
+
+    options.xAxis = {
+      type: "category",
+    };
+
+    options.yAxis = {
+      name: labels[0],
+      nameRotate: 90,
+      nameLocation: "middle",
+      nameGap: 50,
+      nameTextStyle: {
+        fontWeight: "bold",
+      },
+    };
+
+    // don't want to go over 5 consecutive bars
+    options.series = Array(
+      Math.min(
+        Math.max(
+          ...Object.values(usersSessionsCount as { [k: string]: number }),
+        ),
+        maxNumberOfSeries,
+      ),
+    ).fill({ type: "bar" });
+  }
+
+  if (type === "line") {
+    console.log("line");
+  }
+
+  if (type === "pie") {
+    console.log("line");
   }
 
   return options;
