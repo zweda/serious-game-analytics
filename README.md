@@ -1,4 +1,5 @@
 # Serious Game Analytics
-- app
-- service
-- Unity asset
+- Dashboard App
+- Django Service
+- Aptabase
+- Unity Data Collection Asset
